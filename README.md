@@ -1,10 +1,10 @@
-# WebDev 2 — Week 2: Spring Framework & Spring Boot Fundamentals
+# WebDev 2 — Week 3: Spring MVC Controller Application
 
-**Term:** Prelim · **Week:** 2  
+**Term:** Prelim · **Week:** 3  
 **Course:** WebDev 2  
 **Student:** geoxify (`geoffbenedict.carino@lorma.edu`)  
 **Repository:** `webdev2`  
-**Branch:** `week2`  
+**Branch:** `week3`  
 
 ---
 
@@ -12,29 +12,30 @@
 1. [Overview & Learning Outcomes](#-overview--learning-outcomes)
 2. [Project Structure](#-project-structure)
 3. [Implementation Details (Tasks 1–5)](#%EF%B8%8F-implementation-details)
-   - [Task 1: Bootstrap the Spring Boot Project](#task-1--bootstrap-the-spring-boot-project-easy)
-   - [Task 2: Service & Repository Beans](#task-2--service--repository-beans-easy-medium)
-   - [Task 3: Constructor Dependency Injection](#task-3--constructor-dependency-injection-medium)
-   - [Task 4: Externalized Application Configuration](#task-4--externalized-application-configuration-medium)
-   - [Task 5: Startup Wiring Report](#task-5--startup-wiring-report-hard)
-4. [Spring IoC Object Dependency Architecture](#-spring-ioc-object-dependency-architecture)
-5. [Build & Execution Guide](#-build--execution-guide)
-6. [Port Configuration](#-port-configuration)
-7. [Sample Startup Report Output](#-sample-startup-report-output)
+   - [Task 1: List and Detail Endpoints](#task-1--list-and-detail-endpoints-easy)
+   - [Task 2: Filtering with Request Parameters](#task-2--filtering-with-request-parameters-easymedium)
+   - [Task 3: Model-Driven Detail View](#task-3--model-driven-detail-view-medium)
+   - [Task 4: Create Endpoint with Post/Redirect/Get](#task-4--create-endpoint-with-postredirectget-medium)
+   - [Task 5: Meaningful Status Codes](#task-5--meaningful-status-codes-hard)
+4. [Spring MVC Controller & Request Routing Architecture](#-spring-mvc-controller--request-routing-architecture)
+5. [API Endpoint Reference](#-api-endpoint-reference)
+6. [Build & Execution Guide](#-build--execution-guide)
+7. [Port Configuration](#-port-configuration)
 8. [Evidence & Screenshots](#-evidence--screenshots)
 9. [Acceptance Criteria Checklist](#-acceptance-criteria-checklist)
 
 ---
 
 ## 🎯 Overview & Learning Outcomes
-This project transitions the baseline Java application from Week 1 into an enterprise-grade Spring Boot application. It applies fundamental Spring Framework patterns including the Inversion of Control (IoC) container, declarative bean definitions via stereotype annotations, constructor-based dependency injection, externalized configuration binding, and automated startup execution runners.
+This project implements a Spring MVC web controller application handling HTTP requests, data extraction from path variables and query parameters, Model attribute binding, the Post/Redirect/Get (PRG) design pattern, and explicit HTTP status codes using `ResponseEntity` and `@ResponseStatus`.
 
 Key concepts demonstrated:
-- **Spring Initializr Bootstrapping:** Generating a Spring Boot project with Maven and Spring Web.
-- **Stereotype Annotations:** Registering Spring-managed beans using `@Repository` and `@Service`.
-- **Constructor-Based Dependency Injection:** Decoupling component lifecycle management to the Spring IoC container without manually invoking `new`.
-- **Externalized Configuration:** Binding properties from `application.properties` into typed POJO beans using `@ConfigurationProperties(prefix = "shop")`.
-- **Startup Lifecycle Hooks:** Executing automated startup reporting with `CommandLineRunner`.
+- **DispatcherServlet & Request Mapping:** Directing incoming HTTP requests to controller handler methods via `@Controller`, `@RequestMapping("/books")`, `@GetMapping`, and `@PostMapping`.
+- **Path Variables:** Extracting URI path segments using `@PathVariable Long id` to identify specific book resources.
+- **Query Parameters & Optional Filtering:** Reading query strings with `@RequestParam(required = false) String author` to support selective filtering.
+- **Model Attribute Binding:** Populating Spring's `Model` interface via `model.addAttribute("book", book)` and routing to logical view identifiers (`book-detail`).
+- **Post/Redirect/Get (PRG) Pattern:** Eliminating duplicate form resubmission vulnerabilities by responding to successful `POST` requests with a `302 Found` redirect (`"redirect:/books"`).
+- **Explicit HTTP Status Codes:** Returning `ResponseEntity<Book>` with `200 OK` or `404 Not Found`, alongside `@ResponseStatus(HttpStatus.CREATED)` (HTTP 201) for resource creation.
 
 ---
 
@@ -50,20 +51,22 @@ webdev2/
 ├── pom.xml
 ├── README.md
 ├── screenshot/
-│   ├── task1_bootstrap_port8082.png
-│   ├── task3_constructor_injection.png
-│   └── task5_startup_report.png
+│   ├── task1_list_and_detail_endpoints.png
+│   ├── task2_all_books_omitted_param.png
+│   ├── task2_filtered_by_author.png
+│   ├── task3_model_driven_detail_view.png
+│   ├── task4_post_redirect_get.png
+│   ├── task5_post_status_201_created.png
+│   ├── task5_status_200_valid_id.png
+│   └── task5_status_404_invalid_id.png
 ├── src/
 │   ├── main/
 │   │   ├── java/
 │   │   │   └── com/
 │   │   │       └── example/
 │   │   │           └── webdev2/
-│   │   │               ├── Product.java
-│   │   │               ├── ProductReportRunner.java
-│   │   │               ├── ProductRepository.java
-│   │   │               ├── ProductService.java
-│   │   │               ├── ShopProperties.java
+│   │   │               ├── Book.java
+│   │   │               ├── BookController.java
 │   │   │               └── Webdev2Application.java
 │   │   └── resources/
 │   │       └── application.properties
@@ -79,79 +82,76 @@ webdev2/
 
 ## 🛠️ Implementation Details
 
-### Task 1 — Bootstrap the Spring Boot Project _(Easy)_
-- Initialized the project with Maven, Java 17, and `spring-boot-starter-webmvc` (`Spring Web`).
-- Configured the embedded HTTP server to listen on port `8082` via `src/main/resources/application.properties`:
-  ```properties
-  server.port=8082
-  ```
-- Verified successful bootstrap and clean execution with no startup errors.
+### Task 1 — List and Detail Endpoints _(Easy)_
+- Created `Book.java` domain model containing `id` (Long), `title` (String), `author` (String), and `price` (double).
+- Created `BookController.java` annotated with `@Controller` and class-level `@RequestMapping("/books")`.
+- Implemented an in-memory `List<Book>` pre-populated with initial book records.
+- Added `GET /books` mapped to `getAllBooks()` returning the list of books.
+- Added `GET /books/{id}` mapped to `getBookById(@PathVariable Long id)` to retrieve a specific book by its URL path variable.
 
-### Task 2 — Service & Repository Beans _(Easy–Medium)_
-- **`Product.java`**: Domain model encapsulating `name` (String) and `price` (double) with parameterized constructor, standard getters/setters, and `toString()`.
-- **`ProductRepository.java`**: Annotated with `@Repository`. Manages an in-memory `List<Product>` containing:
-  - Laptop (45,000)
-  - Mouse (800)
-  - Keyboard (1,500)
-  - Monitor (12,000)
-  - Headset (2,500)
-  - Printer (8,500)
-  Exposes `findAll()` to retrieve the catalog without connecting to a database.
-- **`ProductService.java`**: Annotated with `@Service`. Implements business logic filtering via `getProductsAboveThreshold(double threshold)` using Java Streams.
+### Task 2 — Filtering with Request Parameters _(Easy–Medium)_
+- Enhanced `GET /books` with `@RequestParam(required = false) String author`.
+- When `author` is specified, filters the list using Java streams and case-insensitive matching (`toLowerCase().contains(...)`).
+- When `author` is omitted (null or blank), the endpoint returns the complete book collection.
 
-### Task 3 — Constructor Dependency Injection _(Medium)_
-- Wired `ProductRepository` into `ProductService` strictly via **constructor injection**:
+### Task 3 — Model-Driven Detail View _(Medium)_
+- Updated the detail endpoint to accept Spring's `Model` parameter:
   ```java
-  @Service
-  public class ProductService {
-      private final ProductRepository productRepository;
-
-      public ProductService(ProductRepository productRepository, ShopProperties shopProperties) {
-          this.productRepository = productRepository;
-          this.shopProperties = shopProperties;
-      }
-      // ...
-  }
+  model.addAttribute("book", book);
+  return "book-detail";
   ```
-- Eliminates manual object creation (`new ProductRepository()`), shifting lifecycle responsibility entirely to the Spring IoC container.
+- Provided a dedicated view method `getBookDetailView(@PathVariable Long id, Model model)` returning the logical view name `"book-detail"` with the populated model attribute.
 
-### Task 4 — Externalized Application Configuration _(Medium)_
-- Externalized application metadata into `src/main/resources/application.properties`:
-  ```properties
-  server.port=8082
+### Task 4 — Create Endpoint with Post/Redirect/Get _(Medium)_
+- Added `POST /books` endpoint that accepts new book data via form submission or JSON payload.
+- Automatically computes the next sequential ID and appends the book to the in-memory list.
+- Implements the **Post/Redirect/Get (PRG)** pattern by returning `"redirect:/books"`, directing the client to re-issue a `GET` request and avoiding duplicate submissions on browser refresh.
 
-  shop.name=My Web Store
-  shop.currency=PHP
-  ```
-- Created `ShopProperties.java` annotated with `@Component` and `@ConfigurationProperties(prefix = "shop")` to type-safely bind `shop.name` and `shop.currency`.
-- Enabled configuration binding in `Webdev2Application.java` using `@EnableConfigurationProperties(ShopProperties.class)`.
-- Injected `ShopProperties` into `ProductService` via constructor injection so shop values are never hardcoded.
-
-### Task 5 — Startup Wiring Report _(Hard)_
-- Created `ProductReportRunner.java` implementing `CommandLineRunner` and registered it as a Spring `@Component`.
-- Injected `ProductService` into `ProductReportRunner` via constructor injection.
-- Automatically executes upon Spring Boot startup to output the formatted catalog report for items exceeding PHP 5,000.
+### Task 5 — Meaningful Status Codes _(Hard)_
+- Refactored `GET /books/{id}` to return `ResponseEntity<Book>`:
+  - If the requested ID matches a book: returns `ResponseEntity.ok(book)` (`200 OK`).
+  - If the requested ID does not exist: returns `ResponseEntity.notFound().build()` (`404 Not Found`).
+- Annotated the `POST /books` create endpoint with `@ResponseStatus(HttpStatus.CREATED)` so successful creation emits HTTP status `201 Created` with a `Location: /books` header.
 
 ---
 
-## 🏛️ Spring IoC Object Dependency Architecture
+## 🏛️ Spring MVC Controller & Request Routing Architecture
 
 ```text
-Spring IoC Container
-        │
-        ├── ProductRepository
-        │
-        ├── ShopProperties
-        │
-        ├── ProductService
-        │       │
-        │       ├── ProductRepository
-        │       └── ShopProperties
-        │
-        └── CommandLineRunner (ProductReportRunner)
-                │
-                └── ProductService
+HTTP Request
+     │
+     ▼
+DispatcherServlet (Spring MVC Front Controller)
+     │
+     ├─► Match HandlerMapping (/books/**)
+     │
+     ▼
+BookController (@Controller, base: /books)
+     │
+     ├── GET  /books                 ──► getAllBooks(@RequestParam(required=false) author)
+     │                                    └─► 200 OK (List<Book>)
+     │
+     ├── GET  /books/{id}            ──► getBookById(@PathVariable id, Model model)
+     │                                    ├─► ID Found:     200 OK (Book)
+     │                                    └─► ID Not Found: 404 Not Found
+     │
+     ├── GET  /books/{id}/view       ──► getBookDetailView(@PathVariable id, Model model)
+     │                                    └─► model.addAttribute("book", book) ──► "book-detail"
+     │
+     └── POST /books                 ──► createBook(Book book) [@ResponseStatus(HttpStatus.CREATED)]
+                                          └─► Saves Book ──► redirect:/books (PRG Pattern)
 ```
+
+---
+
+## 🌐 API Endpoint Reference
+
+| Method | Endpoint | Parameters / Body | Response Status | Description |
+|---|---|---|---|---|
+| `GET` | `/books` | `author` (optional query string) | `200 OK` | Retrieves all books or filters by author. |
+| `GET` | `/books/{id}` | `id` (path variable, Long) | `200 OK` / `404 Not Found` | Retrieves a book by ID wrapped in `ResponseEntity`. |
+| `GET` | `/books/{id}/view` | `id` (path variable, Long) | `200 OK` | Populates `Model` with `"book"` attribute and returns view `"book-detail"`. |
+| `POST` | `/books` | Form or JSON (`title`, `author`, `price`) | `201 Created` (302 redirect) | Creates a new book and redirects to `/books`. |
 
 ---
 
@@ -159,23 +159,18 @@ Spring IoC Container
 
 ### Prerequisites
 - Java Development Kit (JDK) 17 or higher
-- Apache Maven / Maven Wrapper (`mvnw.cmd` included in repository)
+- Maven Wrapper (`mvnw.cmd` included in repository)
 
 ### 1. Build the Application
-To compile sources and package the executable JAR:
 ```powershell
 .\mvnw.cmd clean package
 ```
 
 ### 2. Run the Application
-You can run the application using either the Spring Boot Maven plugin or directly with `java`:
-
-**Option A — Using Maven Wrapper:**
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
-
-**Option B — Running the packaged JAR:**
+Or run the packaged JAR directly:
 ```powershell
 java -jar target/webdev2-0.0.1-SNAPSHOT.jar
 ```
@@ -186,42 +181,7 @@ java -jar target/webdev2-0.0.1-SNAPSHOT.jar
 The application is configured to run on port **`8082`**:
 - Configured in: `src/main/resources/application.properties`
 - Setting: `server.port=8082`
-- Verification: Startup log displays `Tomcat started on port 8082 (http) with context path '/'`.
-
----
-
-## 📊 Sample Startup Report Output
-
-When the application starts, the `ProductReportRunner` bean generates the following startup report:
-
-```text
-  .   ____          _            __ _ _
- /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
-( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
- \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
-  '  |____| .__|_| |_|_| |_\__, | / / / /
- =========|_|==============|___/=/_/_/_/
-
- :: Spring Boot ::                (v4.1.2)
-
-2026-11-11T16:20:02.716+08:00  INFO 3928 --- [webdev2] [           main] com.example.webdev2.Webdev2Application   : Starting Webdev2Application v0.0.1-SNAPSHOT using Java 24.0.2 with PID 3928
-2026-11-11T16:20:03.680+08:00  INFO 3928 --- [webdev2] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8082 (http)
-2026-11-11T16:20:04.040+08:00  INFO 3928 --- [webdev2] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8082 (http) with context path '/'
-2026-11-11T16:20:04.067+08:00  INFO 3928 --- [webdev2] [           main] com.example.webdev2.Webdev2Application   : Started Webdev2Application in 1.77 seconds
-
-================================
-       PRODUCT REPORT
-================================
-Shop: My Web Store
-Currency: PHP
-
-Products above PHP 5000:
-
-Laptop - PHP 45000
-Monitor - PHP 12000
-Printer - PHP 8500
-================================
-```
+- Context URL: `http://localhost:8082/books`
 
 ---
 
@@ -229,16 +189,21 @@ Printer - PHP 8500
 
 | Screenshot | Description | File Path |
 |---|---|---|
-| **Task 1: Bootstrap & Port 8082** | Spring Boot application booting successfully on port 8082 with no errors. | `screenshot/task1_bootstrap_port8082.png` |
-| **Task 3: Constructor Injection** | Successful bean wiring and startup verification of constructor-injected beans. | `screenshot/task3_constructor_injection.png` |
-| **Task 5: Startup Product Report** | Full console output of the `CommandLineRunner` wiring report. | `screenshot/task5_startup_report.png` |
+| **Task 1: List & Detail Endpoints** | Verifying `GET /books` (all books) and `GET /books/1` (detail by path variable). | `screenshot/task1_list_and_detail_endpoints.png` |
+| **Task 2: Author Filtering** | Request with `?author=Tolkien` returning only matching author books. | `screenshot/task2_filtered_by_author.png` |
+| **Task 2: Full Catalog** | Request without author parameter returning the complete list of books. | `screenshot/task2_all_books_omitted_param.png` |
+| **Task 3: Model Detail View** | Source implementation demonstrating `model.addAttribute("book", book)` and returning `"book-detail"`. | `screenshot/task3_model_driven_detail_view.png` |
+| **Task 4: Post/Redirect/Get** | Successful `POST /books` resulting in a `302 Found` redirect followed by `GET /books`. | `screenshot/task4_post_redirect_get.png` |
+| **Task 5: Status 200 OK** | Detail endpoint returning HTTP `200 OK` with `ResponseEntity<Book>` for a valid ID. | `screenshot/task5_status_200_valid_id.png` |
+| **Task 5: Status 404 Not Found** | Detail endpoint returning explicit HTTP `404 Not Found` for an invalid ID. | `screenshot/task5_status_404_invalid_id.png` |
+| **Task 5: Status 201 Created** | Create endpoint returning HTTP `201 Created` with `Location: /books` header. | `screenshot/task5_post_status_201_created.png` |
 
 ---
 
 ## ✅ Acceptance Criteria Checklist
 
-- [x] **Task 1:** Continued in existing `webdev2` repository on `week2` branch. Spring Boot project configured with Maven, Java 17, and Spring Web. Successfully boots on port `8082`.
-- [x] **Task 2:** `ProductRepository` annotated with `@Repository`; `ProductService` annotated with `@Service`; products managed via in-memory `List<Product>`; price threshold filtering operates accurately.
-- [x] **Task 3:** `ProductService` receives `ProductRepository` through its constructor. No `new ProductRepository()` calls exist inside `ProductService`.
-- [x] **Task 4:** `shop.name` and `shop.currency` defined in `application.properties` and bound to typed `@ConfigurationProperties(prefix = "shop")` class (`ShopProperties`), injected into `ProductService`.
-- [x] **Task 5:** `CommandLineRunner` (`ProductReportRunner`) executes at application startup, printing the shop metadata and filtered products using Spring IoC-managed beans.
+- [x] **Task 1:** `BookController` created with `@Controller` and base path `/books`; `GET /books` lists all books; `GET /books/{id}` extracts the path variable and retrieves the book.
+- [x] **Task 2:** `@RequestParam(required = false)` parameter `author` properly filters results when present and returns all books when omitted.
+- [x] **Task 3:** `Model` carries the found book under the key `"book"`, and the logical view name `"book-detail"` is returned.
+- [x] **Task 4:** `POST /books` accepts new book data, appends it to the in-memory store, and redirects to `GET /books` via the Post/Redirect/Get pattern.
+- [x] **Task 5:** Refactored `GET /books/{id}` returns `ResponseEntity<Book>` yielding `200 OK` for valid IDs and `404 Not Found` for missing IDs; create endpoint returns `201 Created`.
