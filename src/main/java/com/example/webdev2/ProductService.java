@@ -8,8 +8,11 @@ import java.util.stream.Collectors;
 @Service
 public class ProductService {
 
+    // Dependency managed by Spring IoC container
     private final ProductRepository productRepository;
 
+    // Constructor-based Dependency Injection
+    // Spring IoC container automatically provides the ProductRepository bean
     public ProductService(ProductRepository productRepository) {
         this.productRepository = productRepository;
     }
