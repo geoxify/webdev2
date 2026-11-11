@@ -1,241 +1,239 @@
-# WebDev 2 — Week 4: Server-Side Rendering with Thymeleaf
+# WebDev 2 — Week 5: Application Architecture & Validation
 
 **Course:** WEBDEV2  
-**Term:** Prelim · **Week:** 4  
+**Term:** Prelim · **Week:** 5  
 **Student:** geoxify (`geoffbenedict.carino@lorma.edu`)  
 **Repository:** `https://github.com/geoxify/webdev2`  
-**Branch:** `week4`  
-**Submission URL:** `https://github.com/geoxify/webdev2/tree/week4`  
+**Branch:** `week5`  
+**Submission URL:** `https://github.com/geoxify/webdev2/tree/week5`  
 
 ---
 
 ## 📌 Table of Contents
 1. [Overview & Learning Outcomes](#-overview--learning-outcomes)
-2. [Project Architecture & Directory Structure](#-project-architecture--directory-structure)
-3. [Task 1 — Product List Template (`products.html`)](#-task-1--product-list-template)
-4. [Task 2 — Product Detail Template (`product-detail.html`)](#-task-2--product-detail-template)
-5. [Task 3 — Shared Navigation Fragment (`fragments/navbar.html`)](#-task-3--shared-navigation-fragment)
-6. [Task 4 — Create Form (`product-form.html`)](#-task-4--create-form)
-7. [Task 5 — Binding Errors on the Create Form](#-task-5--binding-errors-on-the-create-form)
-8. [Thymeleaf Expression Syntax Guide](#-thymeleaf-expression-syntax-guide)
-9. [Verification & Acceptance Criteria Checklist](#-verification--acceptance-criteria-checklist)
-10. [Build & Execution Guide](#-build--execution-guide)
+2. [Task 1 — Domain Selection & Requirements (`crud-app-spec.md`)](#-task-1--domain-selection--requirements)
+3. [Task 2 — Validated Domain Model (`Product.java`)](#-task-2--validated-domain-model)
+4. [Task 3 — Service & Repository Layers](#-task-3--service--repository-layers)
+5. [Task 4 — Web Controller & Thymeleaf CRUD Views](#-task-4--web-controller--thymeleaf-crud-views)
+6. [Architectural Overview: Controller-Service-Repository](#-architectural-overview)
+7. [Automated Test Suite](#-automated-test-suite)
+8. [Acceptance Criteria Checklist](#-acceptance-criteria-checklist)
+9. [Build & Execution Guide](#-build--execution-guide)
 
 ---
 
 ## 🎯 Overview & Learning Outcomes
-This project implements a complete server-rendered web application using Spring Boot and Thymeleaf. Building on the Spring MVC controllers established in previous weeks, dynamic model data is rendered into structured HTML templates, shared layout markup is modularized into reusable fragments, and form submissions are bound directly to Java domain objects with error handling and validation.
+This project expands upon the Week 4 foundation by implementing a full Create, Read, Update, and Delete (CRUD) web application following the **Controller-Service-Repository** architectural pattern and applying **Jakarta Bean Validation**.
 
 ### Key Objectives Achieved:
-- **Server-Side Templating:** Configured `spring-boot-starter-thymeleaf` to process dynamic HTML views located in `src/main/resources/templates/`.
-- **Dynamic Content & Iteration:** Leveraged `th:each` and `th:text` to dynamically display collections of model objects, combined with `th:if` conditional evaluation for empty collection states.
-- **Variable Expressions & Nested Property Access:** Utilized `${...}` expressions to drill down through nested model properties (`product.category.name`, `product.category.description`).
-- **Template Modularity & Fragment Reuse:** Extracted shared layout headers into `fragments/navbar.html` using `th:fragment="navbar"` and included it seamlessly across templates with `th:replace`.
-- **Form Object Binding:** Bound HTML forms to backing `Product` model instances using `th:object="${product}"`, `th:field="*{name}"`, and link expressions `th:action="@{/products}"`.
-- **Data Binding Validation & Error Surfacing:** Captured type-conversion and binding errors using `BindingResult` immediately following `@ModelAttribute Product product` in the controller, redisplaying the form with preserved input and field-level error messages via `th:errors`.
+- **Defined CRUD System Requirements:** Formalized single-resource requirements in `crud-app-spec.md` with explicit `REQ-<N>` statements covering the complete lifecycle.
+- **Implemented Validated Domain Entity:** Structured `Product` with 6 fields and 5 distinct Jakarta Bean Validation constraints (`@NotBlank`, `@Size`, `@NotNull`, `@Min`, `@DecimalMin`, `@DecimalMax`) with custom error messages.
+- **Enforced Separation of Concerns:** Built an in-memory repository (`InMemoryProductRepository`) implementing `ProductRepository` and encapsulated business logic inside `@Service ProductService`.
+- **Delivered Interactive Thymeleaf CRUD Views:** Built templates for catalog listing (`products.html`), creation form (`product-form.html`), pre-populated update form (`product-edit.html`), and detailed inspection (`product-detail.html`).
+- **Surfaced Inline Field Errors:** Captured validation failures via `BindingResult` and rendered inline error messages adjacent to invalid input fields using Thymeleaf `th:errors` and `th:classappend`.
+- **Maintained Clean Git History:** Structured progression directly on the `week5` branch without subfolders, accompanied by granular commits for each task.
 
 ---
 
-## 📁 Project Architecture & Directory Structure
+## 📋 Task 1 — Domain Selection & Requirements
 
-```text
-webdev2/
-├── .gitattributes
-├── .gitignore
-├── HELP.md
-├── mvnw
-├── mvnw.cmd
-├── pom.xml
-├── README.md
-├── answers.md
-├── screenshot/
-│   ├── task1_product_list_rendered.png
-│   ├── task1_empty_state_message.png
-│   ├── task2_product_detail_nested_property.png
-│   ├── task3_navbar_products_page.png
-│   ├── task3_navbar_detail_page.png
-│   ├── task4_product_form.png
-│   ├── task4_post_redirect_success.png
-│   └── task5_binding_error_redisplayed_form.png
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── com/
-│   │   │       └── example/
-│   │   │           └── webdev2/
-│   │   │               ├── Category.java
-│   │   │               ├── Product.java
-│   │   │               ├── ProductController.java
-│   │   │               ├── HomeController.java
-│   │   │               ├── Book.java
-│   │   │               ├── BookController.java
-│   │   │               └── Webdev2Application.java
-│   │   └── resources/
-│   │       ├── application.properties
-│   │       └── templates/
-│   │           ├── products.html
-│   │           ├── product-detail.html
-│   │           ├── product-form.html
-│   │           └── fragments/
-│   │               └── navbar.html
-│   └── test/
-│       └── java/
-│           └── com/
-│               └── example/
-│                   └── webdev2/
-│                       ├── ProductControllerTest.java
-│                       └── Webdev2ApplicationTests.java
+The requirements specification is committed directly to the repository root as [`crud-app-spec.md`](crud-app-spec.md).
+
+### Functional Requirements Summary:
+- **REQ-1 (Create):** The system shall allow users to register and persist a new product record with validated attributes (`name`, `category`, `price`, `stockQuantity`, `description`), rejecting invalid inputs with inline Bean Validation error messages.
+- **REQ-2 (Read):** The system shall allow users to retrieve and display all registered products in a tabular catalog, and inspect complete specifications for any individual product by its ID.
+- **REQ-3 (Update):** The system shall allow users to modify an existing product's details using a pre-populated edit form, re-validating all fields before persisting updates.
+- **REQ-4 (Delete):** The system shall allow users to remove an existing product record from the inventory catalog with immediate redirection and visual feedback.
+- **REQ-5 (Validation):** The system shall enforce data integrity using Jakarta Bean Validation constraints and render inline error messages adjacent to invalid form controls.
+- **REQ-6 (Layered Architecture):** The system shall enforce separation of concerns using the Controller-Service-Repository pattern.
+
+---
+
+## 🛡️ Task 2 — Validated Domain Model
+
+The domain entity [`Product.java`](src/main/java/com/example/webdev2/Product.java) contains 6 fields and applies 5 distinct Bean Validation annotations with custom messages:
+
+```java
+public class Product {
+
+    private Long id;
+
+    @NotBlank(message = "Product name is required")
+    @Size(min = 2, max = 100, message = "Product name must be between 2 and 100 characters")
+    private String name;
+
+    @NotBlank(message = "Category is required")
+    @Size(min = 2, max = 50, message = "Category must be between 2 and 50 characters")
+    private String category;
+
+    @NotNull(message = "Price is required")
+    @DecimalMin(value = "0.01", message = "Price must be at least $0.01")
+    @DecimalMax(value = "99999.99", message = "Price cannot exceed $99,999.99")
+    private Double price;
+
+    @NotNull(message = "Stock quantity is required")
+    @Min(value = 0, message = "Stock quantity cannot be negative")
+    @Max(value = 100000, message = "Stock quantity cannot exceed 100,000 units")
+    private Integer stockQuantity;
+
+    @Size(max = 500, message = "Description must not exceed 500 characters")
+    private String description;
+    
+    // Constructors, Getters, Setters, toString, equals, and hashCode...
+}
 ```
 
 ---
 
-## 🛠️ Task 1 — Product List Template
+## ⚙️ Task 3 — Service & Repository Layers
 
-### Implementation
-- **Template:** `src/main/resources/templates/products.html`
-- **Controller Method:** `ProductController.getAllProducts(@RequestParam(required = false) boolean empty, Model model)`
-- **Endpoint:** `GET /products`
-- **Thymeleaf Features Used:**
-  - `th:each="product : ${products}"`: Iterates over the collection of products passed from the Spring `Model`.
-  - `th:text="${product.name}"`: Evaluates and renders each product's name into the table cell.
-  - `th:if="${products == null or #lists.isEmpty(products)}"`: Gates an empty-state alert card, rendering only when the list contains no items.
-  - `th:if="${products != null and not #lists.isEmpty(products)}"`: Renders the table container only when products are present.
+Persistence and business operations are decoupled into clean architectural layers:
 
-### Evidence
-- Rendered product list displaying multiple active inventory items:  
-  ![Rendered Product List](screenshot/task1_product_list_rendered.png)
-- Conditional empty-state view (`GET /products?empty=true`):  
-  ![Empty State Alert](screenshot/task1_empty_state_message.png)
+### 1. Repository Layer
+- **Interface:** [`ProductRepository.java`](src/main/java/com/example/webdev2/ProductRepository.java)
+- **Implementation:** [`InMemoryProductRepository.java`](src/main/java/com/example/webdev2/InMemoryProductRepository.java) annotated with `@Repository`
+- **Data Structure:** Thread-safe `ConcurrentHashMap<Long, Product>` paired with an `AtomicLong` sequence generator.
+- **Core Methods:**
+  - `findAll()`: Returns all products sorted by ID.
+  - `findById(Long id)`: Retrieves product by ID wrapped in `Optional<Product>`.
+  - `save(Product product)`: Stores product and automatically assigns next sequence ID.
+  - `update(Long id, Product product)`: Updates existing product or throws `NoSuchElementException`.
+  - `deleteById(Long id)`: Removes product by ID, returning boolean status.
+  - `reset()` / `clear()`: Helper methods to manage in-memory seed state.
 
----
-
-## 🔍 Task 2 — Product Detail Template
-
-### Implementation
-- **Template:** `src/main/resources/templates/product-detail.html`
-- **Controller Method:** `ProductController.getProductById(@PathVariable Long id, Model model)`
-- **Endpoint:** `GET /products/{id}`
-- **Nested Property Architecture:**
-  - `Product` has a direct reference to a `Category` object (`private Category category;`).
-  - `Category` defines fields `id`, `name`, and `description`.
-  - Thymeleaf navigates the object graph using standard dot notation: `${product.category.name}` and `${product.category.description}`.
-
-### Evidence
-- Product detail view rendering product properties and resolved nested category name (`Peripherals`):  
-  ![Product Detail View](screenshot/task2_product_detail_nested_property.png)
+### 2. Service Layer
+- **Implementation:** [`ProductService.java`](src/main/java/com/example/webdev2/ProductService.java) annotated with `@Service`
+- **Dependency Injection:** Injected with `ProductRepository` via constructor injection.
+- **Responsibilities:** Validates business rules, delegates data persistence to repository, and isolates business logic from HTTP presentation details.
 
 ---
 
-## 🧩 Task 3 — Shared Navigation Fragment
+## 🌐 Task 4 — Web Controller & Thymeleaf CRUD Views
 
-### Implementation
-- **Fragment File:** `src/main/resources/templates/fragments/navbar.html`
-- **Fragment Declaration:** `th:fragment="navbar"` on the root `<header>` tag.
-- **Inclusion Syntax:** Included in `products.html`, `product-detail.html`, and `product-form.html` using `th:replace="~{fragments/navbar :: navbar}"`.
-- **Behavior:** With `th:replace`, the host placeholder tag is entirely replaced by the fragment markup, eliminating duplicated navigation code across views.
+The presentation tier is implemented in [`ProductController.java`](src/main/java/com/example/webdev2/ProductController.java) and maps all CRUD operations:
 
-### Evidence
-- Navbar appearing on the Product List page:  
-  ![Navbar on List Page](screenshot/task3_navbar_products_page.png)
-- Identical Navbar appearing on the Product Detail page:  
-  ![Navbar on Detail Page](screenshot/task3_navbar_detail_page.png)
-
----
-
-## 📝 Task 4 — Create Form
-
-### Implementation
-- **Template:** `src/main/resources/templates/product-form.html`
-- **Controller Methods:**
-  - `GET /products/new`: Supplies a new `Product` instance via `model.addAttribute("product", new Product())`.
-  - `POST /products`: Receives submitted form data, binds it to `@ModelAttribute Product product`, saves the entity, and redirects to `/products`.
-- **Thymeleaf Form Binding Attributes:**
-  - `th:object="${product}"`: Specifies the backing model object for the entire form.
-  - `th:field="*{name}"`: Binds the input field to `product.name`, automatically populating `id`, `name`, and current `value`.
-  - `th:field="*{price}"`: Binds the price input to `product.price`.
-  - `th:field="*{category.name}"`: Binds nested property `product.category.name`.
-  - `th:action="@{/products}"`: Specifies the submission destination URL using a link expression.
-
-### Evidence
-- Backing-object-bound Create Form (`GET /products/new`):  
-  ![Product Create Form](screenshot/task4_product_form.png)
-- Successful submission resulting in a 302 redirect back to `GET /products` with new product listed (`#5 Studio Wireless Headphones`):  
-  ![Redirected List Page](screenshot/task4_post_redirect_success.png)
-
----
-
-## ⚠️ Task 5 — Binding Errors on the Create Form
-
-### Implementation
-- **Controller Signature:**  
-  ```java
-  @PostMapping
-  public String createProduct(@ModelAttribute Product product, BindingResult result, Model model) {
-      if (result.hasErrors()) {
-          return "product-form"; // Redisplay form without saving
-      }
-      // Save product and redirect
-      ...
-      return "redirect:/products";
-  }
-  ```
-- **Ordering Constraint:** `BindingResult` **must immediately follow** `@ModelAttribute Product product` in the method signature.
-- **Type Conversion Failure:** Submitting non-numeric text (`"invalid-price-text"`) triggers a `typeMismatch` error, setting `result.hasErrors() == true`.
-- **Template Error Display:** `th:errors="*{price}"` displays the binding error message and `#fields.hasErrors('price')` styles the input in red, preserving user entries.
-
-### Evidence
-- Redisplayed form after submitting non-numeric input for `price`, showing the field error message and preserved form input values:  
-  ![Binding Error Displayed](screenshot/task5_binding_error_redisplayed_form.png)
-
----
-
-## 📖 Thymeleaf Expression Syntax Guide
-
-| Syntax | Expression Type | Purpose & Scope | Example in Project |
+| HTTP Method | Route | Description | View / Response |
 |---|---|---|---|
-| `${...}` | **Variable Expression** | Reads properties directly from the Spring `Model` object graph. Supports nested dot navigation. | `${product.name}`, `${product.category.name}` |
-| `*{...}` | **Selection Expression** | Evaluates a property relative to the object previously selected by `th:object`. | `*{name}`, `*{price}`, `*{category.name}` |
-| `@{...}` | **Link URL Expression** | Constructs context-aware application URLs and path-variable substitutions. | `@{/products}`, `@{/products/{id}(id=${product.id})}` |
-| `~{...}` | **Fragment Expression** | Identifies and loads markup fragments defined by `th:fragment`. | `~{fragments/navbar :: navbar}` |
-| `#fields.hasErrors(...)` | **Validation Helper** | Checks whether validation/binding errors exist for a specific form field or overall form. | `#fields.hasErrors('price')` |
+| `GET` | `/products` | List all inventory products | `products.html` |
+| `GET` | `/products/{id}` | View detailed product specifications | `product-detail.html` |
+| `GET` | `/products/new` | Display new product creation form | `product-form.html` |
+| `POST` | `/products` | Create product with `@Valid` check | Redirect to `/products` (or redisplay on error) |
+| `GET` | `/products/edit/{id}` | Display pre-populated edit form | `product-edit.html` |
+| `POST` | `/products/edit/{id}` | Update product with `@Valid` check | Redirect to `/products` (or redisplay on error) |
+| `POST` | `/products/delete/{id}` | Delete product by identifier | Redirect to `/products` with flash alert |
+| `GET` | `/products/reset` | Reset catalog to initial seed items | Redirect to `/products` with flash alert |
+
+### View Templates:
+1. **List View (`products.html`):** Formatted catalog table with product metrics (price, stock badges), quick action buttons (👁️ View, ✏️ Edit, 🗑️ Delete), empty-state message (`th:if`), and dismissible flash notification alerts.
+2. **Create Form (`product-form.html`):** Clean form bound to entity backing object via `th:object="${product}"`, featuring inline field validation error indicators (`th:errors`, `th:classappend`).
+3. **Edit Form (`product-edit.html`):** Pre-populated form bound to existing product details, re-validating upon submission and highlighting field-level errors inline.
+4. **Detail View (`product-detail.html`):** Comprehensive specification card with breadcrumbs, formatted pricing, stock status, and direct Edit/Delete actions.
 
 ---
 
-## ✅ Verification & Acceptance Criteria Checklist
+## 🏗️ Architectural Overview
 
-| Task | Requirement | Status | Evidence / Verification |
-|---|---|---|---|
-| **Task 1** | Render product list with `th:each` and `th:text`; `th:if`-gated empty state message. | **PASSED** | `templates/products.html` renders all catalog items; `?empty=true` renders clean empty-state message. Screenshots captured. |
-| **Task 2** | Detail template for `GET /products/{id}` displaying name, price, and nested property (`product.category.name`). | **PASSED** | `templates/product-detail.html` displays product name, formatted price, and resolved category `Peripherals`. Screenshot captured. |
-| **Task 3** | Modular navbar in `templates/fragments/navbar.html` included via `th:replace` on both list and detail views. | **PASSED** | Single navbar source file; renders identically on `/products` and `/products/1`. Screenshots verified. |
-| **Task 4** | Form bound to `Product` via `th:object`, inputs bound via `th:field`, `POST /products` with PRG redirect. | **PASSED** | `templates/product-form.html` binds `name`, `price`, `category.name`. Valid POST redirects to `/products` with item created. |
-| **Task 5** | `@ModelAttribute` + `BindingResult` in `POST /products`; returns form on errors; `th:errors` displays field error. | **PASSED** | Non-numeric input for price triggers `hasErrors() == true`, form redisplays preserving values with clear error banner and message. |
+```
+[ Browser / HTTP Client ]
+           │
+           │  GET /products, POST /products, POST /products/edit/{id}, POST /products/delete/{id}
+           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Web Layer: ProductController (@Controller)                  │
+│ - Request mapping & HTTP parameter binding                  │
+│ - @Valid annotation & BindingResult evaluation              │
+│ - Model population & Thymeleaf template routing             │
+│ - Post/Redirect/Get (PRG) pattern with RedirectAttributes   │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ Calls service methods
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Business Layer: ProductService (@Service)                   │
+│ - Coordinates domain logic & validation invariants          │
+│ - Pure business rules independent of web/HTTP context       │
+│ - Constructor-injected repository dependency                │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ Calls repository contract
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Data Layer: InMemoryProductRepository (@Repository)         │
+│ - Implements ProductRepository interface                    │
+│ - Thread-safe storage with ConcurrentHashMap                │
+│ - Atomic identifier generation with AtomicLong              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🧪 Automated Test Suite
+
+A comprehensive test suite of **26 automated tests** guarantees correctness and prevents regressions across all application layers:
+
+1. **`ProductValidationTest` (5 tests):**
+   - Validates that well-formed products pass all constraint checks.
+   - Verifies `@NotBlank` and `@Size` violations on blank product names.
+   - Verifies `@Min` violation on negative stock quantities.
+   - Verifies `@NotNull` violation on missing price.
+   - Verifies `@DecimalMin` violation on non-positive pricing.
+
+2. **`ProductServiceTest` (8 tests):**
+   - Verifies product listing, retrieval by existing/non-existent ID.
+   - Verifies product creation and auto-incremented sequence ID assignment.
+   - Verifies product update and `NoSuchElementException` on non-existent targets.
+   - Verifies product deletion and boolean status return.
+
+3. **`ProductControllerTest` (13 tests):**
+   - Verifies `GET /products` returns `products` view with model data.
+   - Verifies `GET /products?empty=true` renders empty catalog state.
+   - Verifies `GET /products/{id}` renders detail view with model attributes.
+   - Verifies `GET /products/{id}` handles not-found by redirecting with flash error.
+   - Verifies `GET /products/new` renders create form with empty backing model.
+   - Verifies `POST /products` succeeds with valid data and redirects (PRG).
+   - Verifies `POST /products` catches validation errors and redisplays `product-form`.
+   - Verifies `GET /products/edit/{id}` renders pre-populated edit form.
+   - Verifies `POST /products/edit/{id}` updates record and redirects.
+   - Verifies `POST /products/edit/{id}` redisplays `product-edit` on validation errors.
+   - Verifies `POST /products/delete/{id}` deletes product and redirects with status.
+
+---
+
+## ✅ Acceptance Criteria Checklist
+
+| Requirement | Status | Evidence / Verification |
+|---|---|---|
+| **Domain Selected & Requirements Documented** | ✅ Complete | [`crud-app-spec.md`](crud-app-spec.md) created at repository root with `REQ-1` to `REQ-6` |
+| **Validated Domain Entity (≥4 fields, ≥3 constraints)** | ✅ Complete | [`Product.java`](src/main/java/com/example/webdev2/Product.java) has 6 fields and 5 distinct constraints with custom messages |
+| **Repository Layer (In-Memory Storage)** | ✅ Complete | [`ProductRepository.java`](src/main/java/com/example/webdev2/ProductRepository.java) & [`InMemoryProductRepository.java`](src/main/java/com/example/webdev2/InMemoryProductRepository.java) |
+| **Service Layer (`@Service`)** | ✅ Complete | [`ProductService.java`](src/main/java/com/example/webdev2/ProductService.java) marked with `@Service` and constructor injection |
+| **Web Controller (`@Controller`)** | ✅ Complete | [`ProductController.java`](src/main/java/com/example/webdev2/ProductController.java) handles all CRUD routes & `@Valid` |
+| **List View (Read)** | ✅ Complete | [`products.html`](src/main/resources/templates/products.html) with table, actions, and empty state |
+| **Create Form (Create)** | ✅ Complete | [`product-form.html`](src/main/resources/templates/product-form.html) with inline Bean Validation errors |
+| **Edit Form (Update)** | ✅ Complete | [`product-edit.html`](src/main/resources/templates/product-edit.html) pre-populated with inline errors |
+| **Delete Action (Delete)** | ✅ Complete | Handled via POST route with confirmation prompt and redirect |
+| **Clean Git Commits (≥4 commits on `week5`)** | ✅ Complete | 4+ descriptive commits directly on branch `week5` |
 
 ---
 
 ## 🚀 Build & Execution Guide
 
+### Prerequisites
+- Java Development Kit (JDK) 17+ (Tested on Java 24)
+- Maven Wrapper (`mvnw` / `mvnw.cmd` included)
+
+### Compile and Run Tests
 ```powershell
-# 1. Switch to week4 branch
-git checkout week4
-
-# 2. Compile and package executable jar
-.\mvnw.cmd clean package
-
-# 3. Start the application
-java -jar target/webdev2-0.0.1-SNAPSHOT.jar
-
-# 4. Access the application in your browser
-# Product Catalog:   http://localhost:8082/products
-# Product Detail:    http://localhost:8082/products/1
-# Add New Product:   http://localhost:8082/products/new
-# Binding Error:     http://localhost:8082/products/error-demo
-# Empty State Demo:  http://localhost:8082/products?empty=true
+.\mvnw.cmd test
 ```
 
----
+### Start the Spring Boot Web Server
+```powershell
+.\mvnw.cmd spring-boot:run
+```
 
-## 🔗 Submission Details
-- **Student GitHub Username:** `geoxify`
-- **Moodle Submission URL:**  
-  `https://github.com/geoxify/webdev2/tree/week4`
+Once running, access the application in your browser:
+- **Product Catalog (Read List):** `http://localhost:8080/products`
+- **New Product Form (Create):** `http://localhost:8080/products/new`
+- **Product Detail (Read One):** `http://localhost:8080/products/1`
+- **Edit Product (Update):** `http://localhost:8080/products/edit/1`
+- **Reset Catalog:** `http://localhost:8080/products/reset`
+- **Clear Catalog:** `http://localhost:8080/products/clear`
