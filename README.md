@@ -1,37 +1,40 @@
-# WebDev 2 — Week 1: Java for Web Backend Development
+# WebDev 2 — Week 2: Spring Framework & Spring Boot Fundamentals
 
-**Term:** Prelim · **Week:** 1  
+**Term:** Prelim · **Week:** 2  
+**Course:** WebDev 2  
 **Student:** geoxify (`geoffbenedict.carino@lorma.edu`)  
 **Repository:** `webdev2`  
-**Branch:** `week1`  
-**Collaborator Added:** `johnverz22`  
+**Branch:** `week2`  
 
 ---
 
 ## 📌 Table of Contents
-1. [Overview & Learning Outcomes](#overview--learning-outcomes)
-2. [Project Structure](#project-structure)
-3. [Implementation Details](#implementation-details)
-   - [Task 1: Maven Project Setup](#task-1--maven-project-setup)
-   - [Task 2: Encapsulated Domain Classes & Interface](#task-2--encapsulated-domain-classes--interface)
-   - [Task 3: Roster Management with Generics](#task-3--roster-management-with-generics)
-   - [Task 4: Exception Handling for Invalid Data](#task-4--exception-handling-for-invalid-data)
-   - [Task 5: Stream-Based Roster Report](#task-5--stream-based-roster-report)
-4. [Build & Execution Guide](#build--execution-guide)
-5. [Evidence & Screenshots](#evidence--screenshots)
-6. [Acceptance Criteria Checklist](#acceptance-criteria-checklist)
+1. [Overview & Learning Outcomes](#-overview--learning-outcomes)
+2. [Project Structure](#-project-structure)
+3. [Implementation Details (Tasks 1–5)](#%EF%B8%8F-implementation-details)
+   - [Task 1: Bootstrap the Spring Boot Project](#task-1--bootstrap-the-spring-boot-project-easy)
+   - [Task 2: Service & Repository Beans](#task-2--service--repository-beans-easy-medium)
+   - [Task 3: Constructor Dependency Injection](#task-3--constructor-dependency-injection-medium)
+   - [Task 4: Externalized Application Configuration](#task-4--externalized-application-configuration-medium)
+   - [Task 5: Startup Wiring Report](#task-5--startup-wiring-report-hard)
+4. [Spring IoC Object Dependency Architecture](#-spring-ioc-object-dependency-architecture)
+5. [Build & Execution Guide](#-build--execution-guide)
+6. [Port Configuration](#-port-configuration)
+7. [Sample Startup Report Output](#-sample-startup-report-output)
+8. [Evidence & Screenshots](#-evidence--screenshots)
+9. [Acceptance Criteria Checklist](#-acceptance-criteria-checklist)
 
 ---
 
 ## 🎯 Overview & Learning Outcomes
-This project applies core Java Object-Oriented Programming (OOP) principles, generic collections, runtime exception handling, and functional stream pipelines that serve as the foundation for modern Spring Boot backend development.
+This project transitions the baseline Java application from Week 1 into an enterprise-grade Spring Boot application. It applies fundamental Spring Framework patterns including the Inversion of Control (IoC) container, declarative bean definitions via stereotype annotations, constructor-based dependency injection, externalized configuration binding, and automated startup execution runners.
 
-Key topics covered:
-- **Project Configuration:** Declarative build management using Apache Maven and Java 17.
-- **Encapsulation & Polymorphism:** Private instance fields, validation within mutators, interface contracts, and implementation (`Gradable`).
-- **Collections & Generics:** Type-safe collection handling using `List<Student>` and `ArrayList<Student>`.
-- **Structured Exception Handling:** Custom unchecked runtime exceptions (`InvalidAgeException`) and `try/catch` recovery without termination.
-- **Java Streams API:** Declarative stream pipelines combining intermediate operations (`filter`, `map`) with terminal operations (`collect`, `count`).
+Key concepts demonstrated:
+- **Spring Initializr Bootstrapping:** Generating a Spring Boot project with Maven and Spring Web.
+- **Stereotype Annotations:** Registering Spring-managed beans using `@Repository` and `@Service`.
+- **Constructor-Based Dependency Injection:** Decoupling component lifecycle management to the Spring IoC container without manually invoking `new`.
+- **Externalized Configuration:** Binding properties from `application.properties` into typed POJO beans using `@ConfigurationProperties(prefix = "shop")`.
+- **Startup Lifecycle Hooks:** Executing automated startup reporting with `CommandLineRunner`.
 
 ---
 
@@ -39,105 +42,203 @@ Key topics covered:
 
 ```text
 webdev2/
-├── pom.xml
+├── .gitattributes
 ├── .gitignore
+├── HELP.md
+├── mvnw
+├── mvnw.cmd
+├── pom.xml
 ├── README.md
 ├── screenshot/
-│   ├── task1_mvn_compile.png
-│   ├── task4_exception_handling.png
-│   ├── task5_stream_report.png
-│   └── full_program_execution.png
-└── src/
-    └── main/
-        └── java/
-            └── com/
-                └── webdev2/
-                    ├── Gradable.java
-                    ├── InvalidAgeException.java
-                    ├── Main.java
-                    ├── Roster.java
-                    └── Student.java
+│   ├── task1_bootstrap_port8082.png
+│   ├── task3_constructor_injection.png
+│   └── task5_startup_report.png
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/
+│   │   │       └── example/
+│   │   │           └── webdev2/
+│   │   │               ├── Product.java
+│   │   │               ├── ProductReportRunner.java
+│   │   │               ├── ProductRepository.java
+│   │   │               ├── ProductService.java
+│   │   │               ├── ShopProperties.java
+│   │   │               └── Webdev2Application.java
+│   │   └── resources/
+│   │       └── application.properties
+│   └── test/
+│       └── java/
+│           └── com/
+│               └── example/
+│                   └── webdev2/
+│                       └── Webdev2ApplicationTests.java
 ```
 
 ---
 
 ## 🛠️ Implementation Details
 
-### Task 1 — Maven Project Setup
-- Configured `pom.xml` with:
-  - `groupId`: `com.webdev2`
-  - `artifactId`: `webdev2`
-  - `version`: `1.0-SNAPSHOT`
-  - Java 17 specified as the source, target, and release level.
-- Cleanly compiles using `mvn compile`.
+### Task 1 — Bootstrap the Spring Boot Project _(Easy)_
+- Initialized the project with Maven, Java 17, and `spring-boot-starter-webmvc` (`Spring Web`).
+- Configured the embedded HTTP server to listen on port `8082` via `src/main/resources/application.properties`:
+  ```properties
+  server.port=8082
+  ```
+- Verified successful bootstrap and clean execution with no startup errors.
 
-### Task 2 — Encapsulated Domain Classes & Interface
-- **`Gradable.java`**: Interface specifying `computeStanding()`.
-- **`Student.java`**: Implements `Gradable`.
-  - Private attributes: `name` (String), `age` (int), `course` (String).
-  - Parameterized constructor ensuring validation is triggered on object creation.
-  - Public getters and setters for all fields.
-  - Mutator `setAge(int age)` enforces non-negative constraints.
-  - Implements `computeStanding()` to indicate academic standing.
+### Task 2 — Service & Repository Beans _(Easy–Medium)_
+- **`Product.java`**: Domain model encapsulating `name` (String) and `price` (double) with parameterized constructor, standard getters/setters, and `toString()`.
+- **`ProductRepository.java`**: Annotated with `@Repository`. Manages an in-memory `List<Product>` containing:
+  - Laptop (45,000)
+  - Mouse (800)
+  - Keyboard (1,500)
+  - Monitor (12,000)
+  - Headset (2,500)
+  - Printer (8,500)
+  Exposes `findAll()` to retrieve the catalog without connecting to a database.
+- **`ProductService.java`**: Annotated with `@Service`. Implements business logic filtering via `getProductsAboveThreshold(double threshold)` using Java Streams.
 
-### Task 3 — Roster Management with Generics
-- **`Roster.java`**:
-  - Encapsulates `List<Student> students` using Java Generics (no raw types).
-  - Methods: `addStudent(Student student)` and `getStudents()`.
-  - Initialized with 7 student records of varying ages (both minor `< 18` and adult `>= 18`) in `Main.java`.
+### Task 3 — Constructor Dependency Injection _(Medium)_
+- Wired `ProductRepository` into `ProductService` strictly via **constructor injection**:
+  ```java
+  @Service
+  public class ProductService {
+      private final ProductRepository productRepository;
 
-### Task 4 — Exception Handling for Invalid Data
-- **`InvalidAgeException.java`**: Custom unchecked exception extending `RuntimeException`.
-- `Student.setAge(int age)` throws `InvalidAgeException` whenever `age < 0`.
-- In `Main.java`, instantiation attempts and setter invocations with negative age values are surrounded by `try/catch` blocks.
-- The exception is caught, logged with details, and execution proceeds uninterrupted.
+      public ProductService(ProductRepository productRepository, ShopProperties shopProperties) {
+          this.productRepository = productRepository;
+          this.shopProperties = shopProperties;
+      }
+      // ...
+  }
+  ```
+- Eliminates manual object creation (`new ProductRepository()`), shifting lifecycle responsibility entirely to the Spring IoC container.
 
-### Task 5 — Stream-Based Roster Report
-- **`generateAdultStudentsReport()`** in `Roster.java`:
-  - **Filter**: Filters students who are 18 or older (`.filter(s -> s.getAge() >= 18)`).
-  - **Map**: Extracts only student names (`.map(Student::getName)`).
-  - **Terminal / Count**: Collects names into `List<String>` and counts qualifying students using stream counting (`.count()`).
+### Task 4 — Externalized Application Configuration _(Medium)_
+- Externalized application metadata into `src/main/resources/application.properties`:
+  ```properties
+  server.port=8082
+
+  shop.name=My Web Store
+  shop.currency=PHP
+  ```
+- Created `ShopProperties.java` annotated with `@Component` and `@ConfigurationProperties(prefix = "shop")` to type-safely bind `shop.name` and `shop.currency`.
+- Enabled configuration binding in `Webdev2Application.java` using `@EnableConfigurationProperties(ShopProperties.class)`.
+- Injected `ShopProperties` into `ProductService` via constructor injection so shop values are never hardcoded.
+
+### Task 5 — Startup Wiring Report _(Hard)_
+- Created `ProductReportRunner.java` implementing `CommandLineRunner` and registered it as a Spring `@Component`.
+- Injected `ProductService` into `ProductReportRunner` via constructor injection.
+- Automatically executes upon Spring Boot startup to output the formatted catalog report for items exceeding PHP 5,000.
+
+---
+
+## 🏛️ Spring IoC Object Dependency Architecture
+
+```text
+Spring IoC Container
+        │
+        ├── ProductRepository
+        │
+        ├── ShopProperties
+        │
+        ├── ProductService
+        │       │
+        │       ├── ProductRepository
+        │       └── ShopProperties
+        │
+        └── CommandLineRunner (ProductReportRunner)
+                │
+                └── ProductService
+```
 
 ---
 
 ## 🚀 Build & Execution Guide
 
-### 1. Compile the Project
-```bash
-mvn compile
+### Prerequisites
+- Java Development Kit (JDK) 17 or higher
+- Apache Maven / Maven Wrapper (`mvnw.cmd` included in repository)
+
+### 1. Build the Application
+To compile sources and package the executable JAR:
+```powershell
+.\mvnw.cmd clean package
 ```
 
-### 2. Run the Main Application
-```bash
-java -cp target/classes com.webdev2.Main
+### 2. Run the Application
+You can run the application using either the Spring Boot Maven plugin or directly with `java`:
+
+**Option A — Using Maven Wrapper:**
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+**Option B — Running the packaged JAR:**
+```powershell
+java -jar target/webdev2-0.0.1-SNAPSHOT.jar
 ```
 
 ---
 
-## 📸 Evidence & Screenshots
+## 🌐 Port Configuration
+The application is configured to run on port **`8082`**:
+- Configured in: `src/main/resources/application.properties`
+- Setting: `server.port=8082`
+- Verification: Startup log displays `Tomcat started on port 8082 (http) with context path '/'`.
 
-All screenshots are stored under the `screenshot/` directory:
+---
 
-### Task 1: Successful `mvn compile`
-![Task 1 - mvn compile](screenshot/task1_mvn_compile.png)
+## 📊 Sample Startup Report Output
 
-### Task 4: Exception Handling & Program Continuity
-![Task 4 - Exception Handling](screenshot/task4_exception_handling.png)
+When the application starts, the `ProductReportRunner` bean generates the following startup report:
 
-### Task 5: Stream Report Output
-![Task 5 - Stream Report](screenshot/task5_stream_report.png)
+```text
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
 
-### Full Program Execution
-![Full Program Execution](screenshot/full_program_execution.png)
+ :: Spring Boot ::                (v4.1.2)
+
+2026-11-11T16:20:02.716+08:00  INFO 3928 --- [webdev2] [           main] com.example.webdev2.Webdev2Application   : Starting Webdev2Application v0.0.1-SNAPSHOT using Java 24.0.2 with PID 3928
+2026-11-11T16:20:03.680+08:00  INFO 3928 --- [webdev2] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8082 (http)
+2026-11-11T16:20:04.040+08:00  INFO 3928 --- [webdev2] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8082 (http) with context path '/'
+2026-11-11T16:20:04.067+08:00  INFO 3928 --- [webdev2] [           main] com.example.webdev2.Webdev2Application   : Started Webdev2Application in 1.77 seconds
+
+================================
+       PRODUCT REPORT
+================================
+Shop: My Web Store
+Currency: PHP
+
+Products above PHP 5000:
+
+Laptop - PHP 45000
+Monitor - PHP 12000
+Printer - PHP 8500
+================================
+```
+
+---
+
+## 📷 Evidence & Screenshots
+
+| Screenshot | Description | File Path |
+|---|---|---|
+| **Task 1: Bootstrap & Port 8082** | Spring Boot application booting successfully on port 8082 with no errors. | `screenshot/task1_bootstrap_port8082.png` |
+| **Task 3: Constructor Injection** | Successful bean wiring and startup verification of constructor-injected beans. | `screenshot/task3_constructor_injection.png` |
+| **Task 5: Startup Product Report** | Full console output of the `CommandLineRunner` wiring report. | `screenshot/task5_startup_report.png` |
 
 ---
 
 ## ✅ Acceptance Criteria Checklist
 
-| Task | Criterion | Status |
-|---|---|:---:|
-| **Task 1** | Builds cleanly with `mvn compile`, no errors; Java 17 declared in `pom.xml` | **PASS** |
-| **Task 2** | `Student` fields are `private`; age setter enforces non-negative / throws exception; `Gradable` is a true interface implemented by `Student` | **PASS** |
-| **Task 3** | `Roster` uses `List<Student>` with generics; at least 6 students populated and printed | **PASS** |
-| **Task 4** | `InvalidAgeException` extends `RuntimeException`; invalid age caught, logged, and execution continues without crashing | **PASS** |
-| **Task 5** | Stream pipeline chains `filter`, `map`, and terminal operation; correctly reports students aged 18+ and count | **PASS** |
+- [x] **Task 1:** Continued in existing `webdev2` repository on `week2` branch. Spring Boot project configured with Maven, Java 17, and Spring Web. Successfully boots on port `8082`.
+- [x] **Task 2:** `ProductRepository` annotated with `@Repository`; `ProductService` annotated with `@Service`; products managed via in-memory `List<Product>`; price threshold filtering operates accurately.
+- [x] **Task 3:** `ProductService` receives `ProductRepository` through its constructor. No `new ProductRepository()` calls exist inside `ProductService`.
+- [x] **Task 4:** `shop.name` and `shop.currency` defined in `application.properties` and bound to typed `@ConfigurationProperties(prefix = "shop")` class (`ShopProperties`), injected into `ProductService`.
+- [x] **Task 5:** `CommandLineRunner` (`ProductReportRunner`) executes at application startup, printing the shop metadata and filtered products using Spring IoC-managed beans.
