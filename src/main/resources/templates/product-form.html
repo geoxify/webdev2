@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Product - WEBDEV2 Week 4</title>
+    <title>Add Product - WEBDEV2 Week 5</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -100,7 +100,6 @@
         }
 
         .helper-text { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem; }
-
         textarea.form-control { resize: vertical; min-height: 90px; }
 
         .form-actions { display: flex; gap: 1rem; align-items: center; margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
@@ -132,29 +131,29 @@
 </head>
 <body>
 
-    <!-- Shared Navigation Fragment (Task 3) -->
+    <!-- Shared Navigation Fragment -->
     <div th:replace="~{fragments/navbar :: navbar}"></div>
 
     <main class="container">
         <div class="form-card">
             <div class="form-header">
                 <h1>➕ Add New Product</h1>
-                <p>Fill out the form below. Submitted data is bound directly to a backing Product model object.</p>
+                <p>Register a new product in the inventory. Submitted inputs are validated against Bean Validation rules.</p>
             </div>
 
-            <!-- Task 4 & Task 5: Form bound to Product backing object with th:object -->
+            <!-- Task 4: Form bound to Product backing object with th:object -->
             <form th:action="@{/products}" th:object="${product}" method="post">
 
                 <!-- Validation Error Summary Banner -->
                 <div th:if="${#fields.hasErrors('*')}" class="alert-error" id="formErrorBanner">
                     <span>⚠️</span>
                     <div>
-                        <strong>Data binding failed:</strong>
-                        Please correct the errors indicated below before resubmitting.
+                        <strong>Validation errors occurred:</strong>
+                        Please correct the highlighted fields below before resubmitting.
                     </div>
                 </div>
 
-                <!-- Product Name field bound with th:field -->
+                <!-- Product Name field bound with th:field & inline error message -->
                 <div class="form-group">
                     <label for="name">Product Name <span class="required-star">*</span></label>
                     <input type="text"
@@ -162,13 +161,25 @@
                            th:field="*{name}"
                            th:classappend="${#fields.hasErrors('name')} ? 'input-error' : ''"
                            class="form-control"
-                           placeholder="e.g. Ergonomic Mechanical Keyboard"
-                           required />
-                    <!-- Field error message display for name -->
-                    <span class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Name error</span>
+                           placeholder="e.g. Ergonomic Mechanical Keyboard" />
+                    <span class="field-error" id="nameError" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Name error</span>
+                    <div class="helper-text">Must be between 2 and 100 characters.</div>
                 </div>
 
-                <!-- Product Price field bound with th:field (Task 4 & Task 5) -->
+                <!-- Product Category field bound with th:field & inline error message -->
+                <div class="form-group">
+                    <label for="category">Category <span class="required-star">*</span></label>
+                    <input type="text"
+                           id="category"
+                           th:field="*{category}"
+                           th:classappend="${#fields.hasErrors('category')} ? 'input-error' : ''"
+                           class="form-control"
+                           placeholder="e.g. Electronics, Peripherals, Furniture" />
+                    <span class="field-error" id="categoryError" th:if="${#fields.hasErrors('category')}" th:errors="*{category}">Category error</span>
+                    <div class="helper-text">Product classification (2-50 characters).</div>
+                </div>
+
+                <!-- Product Price field bound with th:field & inline error message -->
                 <div class="form-group">
                     <label for="price">Price (USD) <span class="required-star">*</span></label>
                     <input type="text"
@@ -176,23 +187,22 @@
                            th:field="*{price}"
                            th:classappend="${#fields.hasErrors('price')} ? 'input-error' : ''"
                            class="form-control"
-                           placeholder="e.g. 149.99" />
-                    <!-- Task 5: th:errors next to price field displaying binding error -->
-                    <span class="field-error" id="priceError" th:if="${#fields.hasErrors('price')}" th:errors="*{price}">
-                        Failed to convert property value of type java.lang.String to required type Double for property price
-                    </span>
-                    <div class="helper-text">Enter a valid decimal number (e.g., 99.99). Non-numeric input triggers Spring binding validation.</div>
+                           placeholder="e.g. 129.99" />
+                    <span class="field-error" id="priceError" th:if="${#fields.hasErrors('price')}" th:errors="*{price}">Price error</span>
+                    <div class="helper-text">Decimal value between $0.01 and $99,999.99.</div>
                 </div>
 
-                <!-- Category Name field (nested property binding) -->
+                <!-- Product Stock Quantity field bound with th:field & inline error message -->
                 <div class="form-group">
-                    <label for="categoryName">Category</label>
-                    <input type="text"
-                           id="categoryName"
-                           th:field="*{category.name}"
+                    <label for="stockQuantity">Stock Quantity <span class="required-star">*</span></label>
+                    <input type="number"
+                           id="stockQuantity"
+                           th:field="*{stockQuantity}"
+                           th:classappend="${#fields.hasErrors('stockQuantity')} ? 'input-error' : ''"
                            class="form-control"
-                           placeholder="e.g. Electronics, Peripherals, Accessories" />
-                    <div class="helper-text">Bound to nested property <code>product.category.name</code>.</div>
+                           placeholder="e.g. 25" />
+                    <span class="field-error" id="stockError" th:if="${#fields.hasErrors('stockQuantity')}" th:errors="*{stockQuantity}">Stock error</span>
+                    <div class="helper-text">Non-negative integer representing current units in stock.</div>
                 </div>
 
                 <!-- Product Description field -->
@@ -200,8 +210,11 @@
                     <label for="description">Description</label>
                     <textarea id="description"
                               th:field="*{description}"
+                              th:classappend="${#fields.hasErrors('description')} ? 'input-error' : ''"
                               class="form-control"
                               placeholder="Brief summary of product features and specifications..."></textarea>
+                    <span class="field-error" id="descriptionError" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">Description error</span>
+                    <div class="helper-text">Optional details (maximum 500 characters).</div>
                 </div>
 
                 <div class="form-actions">

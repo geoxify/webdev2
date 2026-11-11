@@ -1,5 +1,6 @@
 package com.example.webdev2;
 
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -9,40 +10,30 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
 
 /**
  * Controller handling product catalog operations, Thymeleaf view rendering,
- * and form data binding with validation.
+ * and form data binding with Jakarta Bean Validation.
+ * Follows the Controller-Service-Repository pattern by delegating business logic to ProductService.
  */
 @Controller
 @RequestMapping("/products")
 public class ProductController {
 
-    private final List<Product> products = new ArrayList<>();
+    private final ProductService productService;
 
-    public ProductController() {
-        resetProducts();
-    }
-
-    private void resetProducts() {
-        products.clear();
-        Category electronics = new Category(1L, "Electronics", "Devices and high-performance gadgetry");
-        Category peripherals = new Category(2L, "Peripherals", "Computer accessories and input equipment");
-        Category furniture = new Category(3L, "Furniture", "Ergonomic workspace and posture items");
-
-        products.add(new Product(1L, "Mechanical Keyboard", 129.99, peripherals, "Tactile hot-swappable mechanical keyboard with RGB backlighting"));
-        products.add(new Product(2L, "UltraWide Monitor", 449.50, electronics, "34-inch curved ultra-wide IPS productivity monitor"));
-        products.add(new Product(3L, "Ergonomic Office Chair", 289.00, furniture, "High-back mesh ergonomic desk chair with lumbar support"));
-        products.add(new Product(4L, "Wireless Gaming Mouse", 79.99, peripherals, "Low-latency wireless precision mouse with dual sensors"));
+    public ProductController(ProductService productService) {
+        this.productService = productService;
     }
 
     /**
-     * Task 1: Product List Template
-     * Populates Model with "products" attribute and renders products.html.
-     * Supports optional empty=true query parameter to demonstrate th:if empty state.
+     * Task 4: List View (Read)
+     * Displays all current items in a formatted table with links to add, edit, or delete.
+     * Supports optional empty=true query parameter to demonstrate empty state handling.
      */
     @GetMapping
     public String getAllProducts(@RequestParam(name = "empty", required = false, defaultValue = "false") boolean empty,
@@ -50,101 +41,141 @@ public class ProductController {
         if (empty) {
             model.addAttribute("products", new ArrayList<Product>());
         } else {
-            model.addAttribute("products", products);
+            model.addAttribute("products", productService.getAllProducts());
         }
         return "products";
     }
 
     /**
-     * Helper endpoint to reset in-memory products list.
-     */
-    @GetMapping("/reset")
-    public String resetAllProducts() {
-        resetProducts();
-        return "redirect:/products";
-    }
-
-    /**
-     * Helper endpoint to clear products to test empty inventory state.
-     */
-    @GetMapping("/clear")
-    public String clearAllProducts() {
-        products.clear();
-        return "redirect:/products";
-    }
-
-    /**
-     * Task 2: Product Detail Template
-     * Populates Model with "product" attribute and renders product-detail.html.
-     * Demonstrates variable expressions and nested property access (product.category.name).
+     * Read: Product Detail View
+     * Displays complete product specifications for a given ID.
      */
     @GetMapping("/{id}")
-    public String getProductById(@PathVariable Long id, Model model) {
-        Product product = products.stream()
-                .filter(p -> p.getId() != null && p.getId().equals(id))
-                .findFirst()
-                .orElse(null);
-
-        if (product == null) {
+    public String getProductById(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+        Optional<Product> productOpt = productService.getProductById(id);
+        if (productOpt.isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Product with ID #" + id + " was not found.");
             return "redirect:/products";
         }
-
-        model.addAttribute("product", product);
+        model.addAttribute("product", productOpt.get());
         return "product-detail";
     }
 
     /**
-     * Task 4: Form View Endpoint
-     * Supplies a new backing Product object to the Model for th:object form binding.
+     * Task 4: Create Form (Create)
+     * Renders empty product form with backing Product object for th:object binding.
      */
     @GetMapping("/new")
-    public String showProductForm(Model model) {
-        Product product = new Product();
-        model.addAttribute("product", product);
+    public String showCreateForm(Model model) {
+        if (!model.containsAttribute("product")) {
+            model.addAttribute("product", new Product());
+        }
         return "product-form";
     }
 
     /**
-     * Task 5 Demonstration Endpoint:
-     * Simulates form redisplay with binding errors on the price field for visual demonstration.
-     */
-    @GetMapping("/error-demo")
-    public String showProductFormWithError(Model model) {
-        Product product = new Product(null, "Faulty Price Device", null, new Category("Electronics"), "Demonstration of field-specific binding error on numeric price");
-        org.springframework.validation.BeanPropertyBindingResult result =
-                new org.springframework.validation.BeanPropertyBindingResult(product, "product");
-        result.rejectValue("price", "typeMismatch",
-                "Failed to convert property value of type 'java.lang.String' to required type 'java.lang.Double' for property 'price'; For input string: \"invalid-price-text\"");
-        model.addAttribute("product", product);
-        model.addAttribute("org.springframework.validation.BindingResult.product", result);
-        return "product-form";
-    }
-
-    /**
-     * Task 4 & Task 5: Handle Product Form Submission with Data Binding & Validation.
-     * BindingResult MUST immediately follow @ModelAttribute Product product.
-     * If binding errors exist (e.g., non-numeric input for price), redisplays product-form.
-     * Otherwise, saves product and redirects to /products.
+     * Task 4: Create Action (Create)
+     * Handles product creation form submission with Jakarta Bean Validation.
+     * BindingResult must immediately follow the validated model attribute.
      */
     @PostMapping
-    public String createProduct(@ModelAttribute Product product, BindingResult result, Model model) {
-        if (result.hasErrors()) {
+    public String createProduct(@Valid @ModelAttribute("product") Product product,
+                                BindingResult bindingResult,
+                                RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
             return "product-form";
         }
+        Product created = productService.createProduct(product);
+        redirectAttributes.addFlashAttribute("successMessage",
+                "Product '" + created.getName() + "' (ID #" + created.getId() + ") was created successfully!");
+        return "redirect:/products";
+    }
 
-        // Auto-generate ID based on existing max ID
-        long maxId = products.stream()
-                .mapToLong(p -> p.getId() != null ? p.getId() : 0L)
-                .max()
-                .orElse(0L);
-        product.setId(maxId + 1);
-
-        // Ensure category is non-null for safe nested property access
-        if (product.getCategory() == null || product.getCategory().getName() == null || product.getCategory().getName().isBlank()) {
-            product.setCategory(new Category(99L, "General", "General merchandise"));
+    /**
+     * Task 4: Edit Form (Update)
+     * Renders pre-populated form allowing users to modify an existing item's details.
+     */
+    @GetMapping("/edit/{id}")
+    public String showEditForm(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+        Optional<Product> productOpt = productService.getProductById(id);
+        if (productOpt.isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Cannot edit: Product with ID #" + id + " was not found.");
+            return "redirect:/products";
         }
+        model.addAttribute("product", productOpt.get());
+        return "product-edit";
+    }
 
-        products.add(product);
+    /**
+     * Task 4: Update Action (Update)
+     * Handles update form submission with validation.
+     * If validation fails, redisplays product-edit with field error messages.
+     */
+    @PostMapping("/edit/{id}")
+    public String updateProduct(@PathVariable Long id,
+                                @Valid @ModelAttribute("product") Product product,
+                                BindingResult bindingResult,
+                                Model model,
+                                RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            product.setId(id);
+            return "product-edit";
+        }
+        try {
+            productService.updateProduct(id, product);
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Product #" + id + " ('" + product.getName() + "') was updated successfully!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/products";
+    }
+
+    /**
+     * Task 4: Delete Action (Delete)
+     * Removes product by ID and redirects back to product list with status message.
+     */
+    @PostMapping("/delete/{id}")
+    public String deleteProductPost(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        boolean deleted = productService.deleteProduct(id);
+        if (deleted) {
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Product #" + id + " was deleted successfully.");
+        } else {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Could not delete: Product #" + id + " does not exist.");
+        }
+        return "redirect:/products";
+    }
+
+    /**
+     * GET fallback for delete action (e.g. direct link or query navigation).
+     */
+    @GetMapping("/delete/{id}")
+    public String deleteProductGet(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        return deleteProductPost(id, redirectAttributes);
+    }
+
+    /**
+     * Helper endpoint to reset catalog back to demo data.
+     */
+    @GetMapping("/reset")
+    public String resetAllProducts(RedirectAttributes redirectAttributes) {
+        productService.resetCatalog();
+        redirectAttributes.addFlashAttribute("infoMessage",
+                "Product catalog has been reset to default inventory data.");
+        return "redirect:/products";
+    }
+
+    /**
+     * Helper endpoint to clear all products for empty-state testing.
+     */
+    @GetMapping("/clear")
+    public String clearAllProducts(RedirectAttributes redirectAttributes) {
+        productService.clearCatalog();
+        redirectAttributes.addFlashAttribute("infoMessage",
+                "All products have been cleared. Inventory is now empty.");
         return "redirect:/products";
     }
 }
