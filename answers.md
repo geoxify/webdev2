@@ -1,226 +1,153 @@
-# WebDev 2 — Week 5: Application Architecture & Validation
+# WebDev 2 — Prelim Lab Exam: Task Tracker
 
-**Course:** WEBDEV2  
-**Term:** Prelim · **Week:** 5  
+**Course:** WEBDEV2 (Java/Spring Boot Full-Stack Web Development)  
+**Assessment:** Prelim Lab Exam  
 **Student:** geoxify (`geoffbenedict.carino@lorma.edu`)  
 **Repository:** `https://github.com/geoxify/webdev2`  
-**Branch:** `week5`  
-**Submission URL:** `https://github.com/geoxify/webdev2/tree/week5`  
+**Branch:** `prelim`  
+**Walkthrough Video (Task 6):** `[YouTube Video Link - Unlisted]`
 
 ---
 
 ## 📌 Table of Contents
-1. [Overview & Learning Outcomes](#-overview--learning-outcomes)
-2. [Project Architecture & Directory Structure](#-project-architecture--directory-structure)
-3. [Task 1 — Domain Selection & Requirements (`crud-app-spec.md`)](#-task-1--domain-selection--requirements)
-4. [Task 2 — Validated Domain Model (`Product.java`)](#-task-2--validated-domain-model)
-5. [Task 3 — Service & Repository Layers](#-task-3--service--repository-layers)
-6. [Task 4 — Web Controller & Thymeleaf CRUD Views](#-task-4--web-controller--thymeleaf-crud-views)
-7. [In-Depth Architectural Analysis: Controller-Service-Repository](#-in-depth-architectural-analysis)
-8. [Automated Verification & Unit/Integration Tests](#-automated-verification)
-9. [Acceptance Criteria Checklist](#-acceptance-criteria-checklist)
-10. [Build & Execution Guide](#-build--execution-guide)
+1. [Overview & Scope](#-overview--scope)
+2. [Architecture & Package Structure](#-architecture--package-structure)
+3. [Task 1 — Project Bootstrap & Layered Skeleton](#-task-1--project-bootstrap--layered-skeleton)
+4. [Task 2 — List & Detail Routing](#-task-2--list--detail-routing)
+5. [Task 3 — Thymeleaf Rendering](#-task-3--thymeleaf-rendering)
+6. [Task 4 — Validated Create Form](#-task-4--validated-create-form)
+7. [Task 5 — Custom Exception Handling](#-task-5--custom-exception-handling)
+8. [Task 6 — Video Walkthrough Guide & Talking Points](#-task-6--video-walkthrough-guide--talking-points)
+9. [Automated Verification Results](#-automated-verification-results)
+10. [Acceptance Criteria Checklist](#-acceptance-criteria-checklist)
 
 ---
 
-## 🎯 Overview & Learning Outcomes
-This lab focuses on the implementation of enterprise-grade software architecture in Spring Boot by applying the **Controller-Service-Repository** pattern and **Jakarta Bean Validation**.
-
-Expanding on the previous codebase, the single-resource system manages a **Product Inventory Catalog** with full Create, Read, Update, and Delete (CRUD) capabilities, complete separation of concerns, and robust client/server-side validation with inline error messaging.
-
-### Key Objectives Achieved:
-1. **Domain Specification:** Created `crud-app-spec.md` with explicit `REQ-<N>` statements covering all CRUD operations.
-2. **Validated Entity Model:** Configured `Product` with 6 fields and 5 distinct Jakarta Bean Validation annotations (`@NotBlank`, `@Size`, `@NotNull`, `@Min`, `@DecimalMin`, `@DecimalMax`) with custom feedback messages.
-3. **Layered Separation of Concerns:**
-   - **Repository:** Thread-safe in-memory storage (`InMemoryProductRepository`) implementing `ProductRepository`.
-   - **Service:** Business coordination layer (`ProductService`) annotated with `@Service`.
-   - **Controller:** Presentation layer (`ProductController`) annotated with `@Controller`.
-4. **Interactive Thymeleaf CRUD Views:**
-   - `products.html`: Tabular listing with empty state and quick action buttons.
-   - `product-form.html`: Creation form with inline field-level validation messages.
-   - `product-edit.html`: Pre-populated update form with re-validation and error handling.
-   - `product-detail.html`: Detailed item view with breadcrumbs and actions.
-5. **Git Branching Integrity:** Created and committed all work directly on the `week5` branch without subfolders, maintaining clean, atomic commits for each task.
+## 🎯 Overview & Scope
+The Prelim Lab Exam assesses mastery of Weeks 1–5:
+- Object-Oriented Programming (encapsulation, constructors, streams, collections).
+- Spring Boot Project Setup & Dependency Injection (IoC, constructor injection).
+- Spring MVC Routing (Controller, Request Mapping, Path Variables, Model).
+- Server-side rendering using Thymeleaf (`th:each`, `th:if`, `th:object`, `th:field`, `th:errors`).
+- Jakarta Bean Validation (`@NotBlank`, `@Size`, `BindingResult`).
+- Layered Controller-Service-Repository architecture and custom Exception Handling (`@ExceptionHandler`).
 
 ---
 
-## 📁 Project Architecture & Directory Structure
+## 📁 Architecture & Package Structure
 
 ```text
-webdev2/
-├── .gitattributes
-├── .gitignore
-├── HELP.md
-├── mvnw
-├── mvnw.cmd
-├── pom.xml
-├── crud-app-spec.md                <-- Task 1: Domain & CRUD Specification
-├── README.md                       <-- Project README for Week 5
-├── answers.md                      <-- Comprehensive Week 5 Lab Report
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── com/
-│   │   │       └── example/
-│   │   │           └── webdev2/
-│   │   │               ├── Webdev2Application.java
-│   │   │               ├── HomeController.java
-│   │   │               ├── Product.java                     <-- Task 2: Validated Domain Model
-│   │   │               ├── ProductRepository.java           <-- Task 3: Repository Interface
-│   │   │               ├── InMemoryProductRepository.java   <-- Task 3: In-Memory Implementation
-│   │   │               ├── ProductService.java              <-- Task 3: Business Service Layer
-│   │   │               └── ProductController.java           <-- Task 4: Web Controller
-│   │   └── resources/
-│   │       ├── application.properties
-│   │       └── templates/
-│   │           ├── products.html                            <-- Task 4: List View (Read)
-│   │           ├── product-form.html                        <-- Task 4: Create Form (Create)
-│   │           ├── product-edit.html                        <-- Task 4: Edit Form (Update)
-│   │           ├── product-detail.html                      <-- Task 4: Detail View (Read)
-│   │           └── fragments/
-│   │               └── navbar.html                          <-- Reusable Navbar Fragment
-│   └── test/
-│       └── java/
-│           └── com/
-│               └── example/
-│                   └── webdev2/
-│                       ├── ProductValidationTest.java       <-- Task 2: Bean Validation Tests
-│                       ├── ProductServiceTest.java          <-- Task 3: Service Layer Tests
-│                       └── ProductControllerTest.java       <-- Task 4: Controller CRUD Tests
+com.example.webdev2/
+├── Webdev2Application.java
+├── controller/
+│   └── TaskController.java
+├── exception/
+│   └── TaskNotFoundException.java
+├── model/
+│   └── Task.java
+├── repository/
+│   └── TaskRepository.java
+└── service/
+    └── TaskService.java
 ```
 
 ---
 
-## 📋 Task 1 — Domain Selection & Requirements
+## 💻 Code Explanations by Layer
 
-The requirements specification is stored in `crud-app-spec.md` at the root directory of the repository.
+### 1. Model Layer (`Task.java`)
+Represents the core domain entity. It holds the attributes:
+- `Long id`: Unique identifier auto-assigned by the repository counter.
+- `String title`: Mandatory task title constrained by `@NotBlank` and `@Size(min = 2, max = 100)`.
+- `String description`: Optional detail constrained by `@Size(max = 500)`.
+- `boolean completed`: Flag defaulted to `false`.
 
-### Functional Requirements:
-- **`REQ-1 (Create):`** The system shall allow users to create and persist a new product record by submitting valid product attributes (`name`, `category`, `price`, `stockQuantity`, `description`) through a web form. Submissions with invalid or missing data must be rejected with descriptive inline validation error messages.
-- **`REQ-2 (Read):`** The system shall allow users to retrieve and display all registered products in a structured catalog table, as well as inspect the complete details of any individual product by its unique identifier (`id`).
-- **`REQ-3 (Update):`** The system shall allow users to modify the attributes of an existing product record through a pre-populated edit form, re-validating all updated fields against domain constraints before saving changes.
-- **`REQ-4 (Delete):`** The system shall allow users to remove an existing product record from the inventory catalog by its unique identifier, with immediate redirection and visual feedback on the updated product list.
-- **`REQ-5 (Validation):`** The system shall apply Jakarta Bean Validation constraints (`@NotBlank`, `@Size`, `@NotNull`, `@Min`, `@DecimalMin`, `@DecimalMax`) on domain entity fields, capture binding errors via `BindingResult`, and render actionable error messages adjacent to invalid form controls.
-- **`REQ-6 (Layered Architecture):`** The system shall enforce separation of concerns using the Controller-Service-Repository pattern.
+Full encapsulation is maintained via private fields, public getters, setters, and explicit constructors.
 
----
+### 2. Repository Layer (`TaskRepository.java`)
+Annotated with `@Repository`. It manages an in-memory thread-safe `CopyOnWriteArrayList<Task>` and uses `AtomicLong` to auto-increment task IDs. Provides `findAll()`, `findById(Long)`, and `save(Task)`.
 
-## 🛡️ Task 2 — Validated Domain Model
+### 3. Service Layer (`TaskService.java`)
+Annotated with `@Service`. Employs constructor injection to receive `TaskRepository`. Acts as the intermediary business coordination layer.
 
-The core domain model is implemented in `Product.java`.
-
-### Constraints Table:
-
-| Field | Type | Bean Validation Annotations | Custom Error Message |
-|---|---|---|---|
-| `id` | `Long` | Primary identifier (system assigned) | N/A |
-| `name` | `String` | `@NotBlank`<br>`@Size(min = 2, max = 100)` | `"Product name is required"`<br>`"Product name must be between 2 and 100 characters"` |
-| `category` | `String` | `@NotBlank`<br>`@Size(min = 2, max = 50)` | `"Category is required"`<br>`"Category must be between 2 and 50 characters"` |
-| `price` | `Double` | `@NotNull`<br>`@DecimalMin(value = "0.01")`<br>`@DecimalMax(value = "99999.99")` | `"Price is required"`<br>`"Price must be at least $0.01"`<br>`"Price cannot exceed $99,999.99"` |
-| `stockQuantity` | `Integer` | `@NotNull`<br>`@Min(value = 0)`<br>`@Max(value = 100000)` | `"Stock quantity is required"`<br>`"Stock quantity cannot be negative"`<br>`"Stock quantity cannot exceed 100,000 units"` |
-| `description` | `String` | `@Size(max = 500)` | `"Description must not exceed 500 characters"` |
-
-### Distinct Annotations Count:
-1. `@NotBlank`
-2. `@Size`
-3. `@NotNull`
-4. `@Min` / `@Max`
-5. `@DecimalMin` / `@DecimalMax`
-*(Exceeds the requirement of at least 3 distinct annotations on at least 4 fields).*
+### 4. Controller Layer (`TaskController.java`)
+Annotated with `@Controller`. Routes:
+- `GET /tasks`: Returns `"task-list"` view.
+- `GET /tasks/{id}`: Returns `"task-detail"` view or throws `TaskNotFoundException`.
+- `GET /tasks/new`: Returns `"task-form"` view.
+- `POST /tasks`: Validates form submission with `@Valid` and `BindingResult`. If invalid, redisplays `"task-form"`. If valid, saves and redirects (`redirect:/tasks`).
+- `@ExceptionHandler(TaskNotFoundException.class)`: Returns `"error/not-found"` view with status 404.
 
 ---
 
-## ⚙️ Task 3 — Service & Repository Layers
+## 📹 Task 6 — Video Walkthrough Guide & Talking Points
 
-### 1. Repository Interface & In-Memory Storage
-`ProductRepository.java` defines clean data operations:
-```java
-public interface ProductRepository {
-    List<Product> findAll();
-    Optional<Product> findById(Long id);
-    Product save(Product product);
-    Product update(Long id, Product product);
-    boolean deleteById(Long id);
-    boolean existsById(Long id);
-    void reset();
-    void clear();
-}
-```
+Use this timed walkthrough script during recording:
 
-`InMemoryProductRepository.java` implements this contract with thread-safety:
-- Uses `ConcurrentHashMap<Long, Product>` to prevent race conditions during concurrent web requests.
-- Employs `AtomicLong` for unique identifier generation.
-- Pre-seeds 5 initial catalog items on instantiation and reset.
+### Segment 1: Running Application Demo (~4 minutes)
+1. **List View (`/tasks`):**
+   - Show the browser at `http://localhost:8080/tasks`.
+   - Point out the list table with the initial pre-seeded tasks, IDs, titles, and completion badges.
+2. **Detail View (`/tasks/1`):**
+   - Click "View Details" on Task 1.
+   - Show that all fields (`id`, `title`, `description`, `completed`) are rendered.
+   - Click "Back to Task List".
+3. **Form Validation (`/tasks/new`):**
+   - Click "Create New Task".
+   - Leave the title blank and click "Save Task".
+   - Point out the inline error message: *"Title is required"*.
+   - Type a single character `"A"` and click "Save Task".
+   - Point out the inline error message: *"Title must be between 2 and 100 characters"*.
+4. **Valid Task Creation & PRG Redirect:**
+   - Type a valid title: `"Record Walkthrough Video"`.
+   - Enter a description: *"Demonstrate all acceptance criteria in under 15 minutes."*
+   - Check the "Mark as already completed" box.
+   - Click "Save Task".
+   - Show the immediate redirect back to `/tasks` (Post/Redirect/Get) with the new task displayed.
+5. **Exception Handling (`/tasks/999`):**
+   - Manually type `http://localhost:8080/tasks/999` in the browser URL bar.
+   - Show the friendly 404 page ("Task with ID 999 was not found") instead of a stack trace.
+   - Click "Return to Task List".
 
-### 2. Service Layer
-`ProductService.java` is marked with Spring's `@Service` stereotype annotation:
-- Encapsulates domain logic and validation checks (e.g., non-null checks, ensuring existing IDs prior to updates).
-- Injects `ProductRepository` via constructor injection:
-```java
-@Service
-public class ProductService {
-    private final ProductRepository productRepository;
-
-    public ProductService(ProductRepository productRepository) {
-        this.productRepository = productRepository;
-    }
-    // Business methods delegating to repository...
-}
-```
-
----
-
-## 🌐 Task 4 — Web Controller & Thymeleaf CRUD Views
-
-### 1. Controller Routes Mapping (`ProductController.java`)
-- **List (Read):** `GET /products` -> returns `"products"`
-- **Detail (Read):** `GET /products/{id}` -> returns `"product-detail"` (or redirects if not found)
-- **Create Form:** `GET /products/new` -> returns `"product-form"` with fresh `Product` model
-- **Create Action:** `POST /products` -> validates with `@Valid`, redisplays `"product-form"` if `bindingResult.hasErrors()`, or redirects to `/products` with flash success message
-- **Edit Form (Update):** `GET /products/edit/{id}` -> returns `"product-edit"` pre-populated with existing entity
-- **Edit Action (Update):** `POST /products/edit/{id}` -> validates with `@Valid`, redisplays `"product-edit"` if `bindingResult.hasErrors()`, or updates and redirects
-- **Delete Action:** `POST /products/delete/{id}` -> deletes entity and redirects to `/products` with status message
-- **Reset / Clear Helpers:** `GET /products/reset` and `GET /products/clear`
-
-### 2. Thymeleaf Views
-- **`products.html`:** Formatted catalog table with product metrics, category badges, stock levels, quick action buttons (`View`, `Edit`, `Delete`), empty state message (`th:if`), and flash notification alerts.
-- **`product-form.html`:** Clean creation form with inline field errors rendered using `th:errors` and inputs dynamically styled with `th:classappend="${#fields.hasErrors('fieldName')} ? 'input-error' : ''"`.
-- **`product-edit.html`:** Pre-populated edit form bound to existing product details with inline validation display.
-- **`product-detail.html`:** Full specification view with formatted price, stock status, breadcrumb navigation, and direct Edit/Delete action buttons.
+### Segment 2: Code Walkthrough (~6 minutes)
+1. **Architecture & Dependency Injection:**
+   - Open `TaskRepository.java`, `TaskService.java`, and `TaskController.java`.
+   - Explain how `@Repository`, `@Service`, and `@Controller` work together.
+   - Highlight the constructor injection:
+     ```java
+     public TaskService(TaskRepository taskRepository) { ... }
+     public TaskController(TaskService taskService) { ... }
+     ```
+2. **Domain Model & Bean Validation:**
+   - Open `Task.java`.
+   - Point out the annotations `@NotBlank` and `@Size(min = 2, max = 100)` on `title`, and `@Size(max = 500)` on `description`.
+3. **Thymeleaf Form Binding:**
+   - Open `task-form.html`.
+   - Explain `th:object="${task}"`, `th:field="*{title}"`, and `th:errors="*{title}"`.
+   - Show how `BindingResult` in `TaskController.java` catches errors before returning `"task-form"`.
+4. **Exception Handling:**
+   - Open `TaskNotFoundException.java` and show `extends RuntimeException`.
+   - Open `TaskController.java` and show `@ExceptionHandler(TaskNotFoundException.class)`.
+   - Show `error/not-found.html` rendering `${errorMessage}`.
+5. **Automated Tests:**
+   - Show the terminal with `./mvnw test` passing 20/20 tests.
 
 ---
 
-## 🏗️ In-Depth Architectural Analysis
+## 🧪 Automated Verification Results
 
-### Why Use the Controller-Service-Repository Pattern?
-1. **Separation of Concerns:** Each layer has a singular responsibility:
-   - *Controller:* HTTP protocol translation, request parameter binding, validation checking, and view selection.
-   - *Service:* Business workflow rules and logic transactions.
-   - *Repository:* Raw persistence mechanism and query execution.
-2. **Testability:** Decoupled layers can be tested in complete isolation. The service layer can be tested without an HTTP server, and the repository can be swapped (e.g., from in-memory to JPA/Hibernate) without touching controller logic.
-3. **Maintainability & Reusability:** Business rules in `ProductService` can be reused across multiple interfaces (REST APIs, Web controllers, CLI tools) without duplicating validation or business calculations.
-
----
-
-## 🧪 Automated Verification
-
-All 26 automated tests pass with 0 failures and 0 errors:
+All 20 unit and integration tests execute successfully:
 
 ```text
-[INFO] -------------------------------------------------------
-[INFO]  T E S T S
-[INFO] -------------------------------------------------------
-[INFO] Running com.example.webdev2.ProductControllerTest
-[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0
-[INFO] Running com.example.webdev2.ProductServiceTest
-[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0
-[INFO] Running com.example.webdev2.ProductValidationTest
+[INFO] Running Task Controller Web MVC Tests
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Running Task Service & Repository Integration Tests
 [INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Running Task Model Bean Validation Tests
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
 [INFO] 
 [INFO] Results:
-[INFO] 
-[INFO] Tests run: 26, Failures: 0, Errors: 0, Skipped: 0
-[INFO] 
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
 
@@ -228,31 +155,9 @@ All 26 automated tests pass with 0 failures and 0 errors:
 
 ## ✅ Acceptance Criteria Checklist
 
-| Requirement | Status | Evidence |
-|---|---|---|
-| Domain selection and ≥4 CRUD requirements documented | ✅ Complete | `crud-app-spec.md` at repository root |
-| Domain model with ≥4 fields and ≥3 distinct Bean Validation annotations | ✅ Complete | `Product.java` has 6 fields and 5 distinct constraints |
-| Repository layer with in-memory storage methods | ✅ Complete | `ProductRepository.java` & `InMemoryProductRepository.java` |
-| Service layer marked with `@Service` encapsulating business logic | ✅ Complete | `ProductService.java` |
-| Web Controller handling all CRUD routes and `@Valid` checks | ✅ Complete | `ProductController.java` |
-| Thymeleaf List view (Read) with links to add, edit, or delete | ✅ Complete | `products.html` |
-| Thymeleaf Create form with inline Bean Validation errors | ✅ Complete | `product-form.html` |
-| Thymeleaf Edit form (Update) pre-populated with validation | ✅ Complete | `product-edit.html` |
-| Delete action removing item from repository | ✅ Complete | `POST /products/delete/{id}` in `ProductController` |
-| Work committed directly to `week5` branch without subfolders | ✅ Complete | Clean git log on `week5` |
-
----
-
-## 🚀 Build & Execution Guide
-
-### Compile and Run Test Suite
-```powershell
-.\mvnw.cmd test
-```
-
-### Run the Application
-```powershell
-.\mvnw.cmd spring-boot:run
-```
-
-Access the application in your browser at `http://localhost:8080/products`.
+- [x] **Task 1:** Project compiles and starts. `Task` model is encapsulated. Repository and Service are beans with constructor injection.
+- [x] **Task 2:** `GET /tasks` returns the task list view. `GET /tasks/{id}` returns detail or throws `TaskNotFoundException`.
+- [x] **Task 3:** Both templates render correctly with dynamic data. Empty list shows a fallback message.
+- [x] **Task 4:** Invalid form submissions redisplay with field-level errors. Valid submissions redirect to `/tasks`.
+- [x] **Task 5:** `/tasks/999` shows a friendly not-found page, not a stack trace.
+- [x] **Task 6:** Video walkthrough demonstration and code explanation guide prepared; ready for student recording and upload.
