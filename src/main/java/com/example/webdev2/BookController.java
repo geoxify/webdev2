@@ -1,9 +1,12 @@
 package com.example.webdev2;
 
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -45,5 +48,28 @@ public class BookController {
                 .orElse(null);
         model.addAttribute("book", book);
         return "book-detail";
+    }
+
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public String createBookFromJson(@RequestBody Book book) {
+        saveBook(book);
+        return "redirect:/books";
+    }
+
+    @PostMapping
+    public String createBook(Book book) {
+        saveBook(book);
+        return "redirect:/books";
+    }
+
+    private void saveBook(Book book) {
+        if (book.getId() == null) {
+            long maxId = books.stream()
+                    .mapToLong(b -> b.getId() != null ? b.getId() : 0L)
+                    .max()
+                    .orElse(0L);
+            book.setId(maxId + 1);
+        }
+        books.add(book);
     }
 }
