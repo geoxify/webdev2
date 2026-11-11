@@ -1,37 +1,58 @@
 package com.example.webdev2;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 import java.util.Objects;
 
 /**
- * Product domain model representing an inventory item.
- * Supports form backing and data binding in Spring MVC and Thymeleaf.
+ * Product domain entity representing a retail or warehouse inventory item.
+ * Applies Jakarta Bean Validation annotations to enforce data integrity.
  */
 public class Product {
 
     private Long id;
+
+    @NotBlank(message = "Product name is required")
+    @Size(min = 2, max = 100, message = "Product name must be between 2 and 100 characters")
     private String name;
+
+    @NotBlank(message = "Category is required")
+    @Size(min = 2, max = 50, message = "Category must be between 2 and 50 characters")
+    private String category;
+
+    @NotNull(message = "Price is required")
+    @DecimalMin(value = "0.01", message = "Price must be at least $0.01")
+    @DecimalMax(value = "99999.99", message = "Price cannot exceed $99,999.99")
     private Double price;
-    private Category category;
+
+    @NotNull(message = "Stock quantity is required")
+    @Min(value = 0, message = "Stock quantity cannot be negative")
+    @Max(value = 100000, message = "Stock quantity cannot exceed 100,000 units")
+    private Integer stockQuantity;
+
+    @Size(max = 500, message = "Description must not exceed 500 characters")
     private String description;
 
     public Product() {
-        // Initialize default category so nested property product.category.name is readily accessible
-        this.category = new Category("General");
     }
 
-    public Product(Long id, String name, Double price, Category category) {
+    public Product(Long id, String name, String category, Double price, Integer stockQuantity, String description) {
         this.id = id;
         this.name = name;
+        this.category = category;
         this.price = price;
-        this.category = (category != null) ? category : new Category("General");
-    }
-
-    public Product(Long id, String name, Double price, Category category, String description) {
-        this.id = id;
-        this.name = name;
-        this.price = price;
-        this.category = (category != null) ? category : new Category("General");
+        this.stockQuantity = stockQuantity;
         this.description = description;
+    }
+
+    public Product(Long id, String name, String category, Double price, Integer stockQuantity) {
+        this(id, name, category, price, stockQuantity, "");
     }
 
     public Long getId() {
@@ -50,6 +71,14 @@ public class Product {
         this.name = name;
     }
 
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
     public Double getPrice() {
         return price;
     }
@@ -58,12 +87,12 @@ public class Product {
         this.price = price;
     }
 
-    public Category getCategory() {
-        return category;
+    public Integer getStockQuantity() {
+        return stockQuantity;
     }
 
-    public void setCategory(Category category) {
-        this.category = category;
+    public void setStockQuantity(Integer stockQuantity) {
+        this.stockQuantity = stockQuantity;
     }
 
     public String getDescription() {
@@ -79,8 +108,10 @@ public class Product {
         return "Product{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
+                ", category='" + category + '\'' +
                 ", price=" + price +
-                ", category=" + category +
+                ", stockQuantity=" + stockQuantity +
+                ", description='" + description + '\'' +
                 '}';
     }
 
@@ -91,11 +122,13 @@ public class Product {
         Product product = (Product) o;
         return Objects.equals(id, product.id) &&
                 Objects.equals(name, product.name) &&
-                Objects.equals(price, product.price);
+                Objects.equals(category, product.category) &&
+                Objects.equals(price, product.price) &&
+                Objects.equals(stockQuantity, product.stockQuantity);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, price);
+        return Objects.hash(id, name, category, price, stockQuantity);
     }
 }
