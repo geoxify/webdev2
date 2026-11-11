@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <!-- Shared Navigation Bar Fragment (Task 3) -->
+    <header th:fragment="navbar" class="site-header">
+        <nav class="navbar">
+            <div class="nav-container">
+                <a th:href="@{/products}" class="nav-brand">
+                    <span class="brand-badge">⚡ WEBDEV2</span>
+                    <span class="brand-title">Inventory Hub</span>
+                </a>
+                <div class="nav-menu">
+                    <a th:href="@{/products}" class="nav-link">📦 Products</a>
+                    <a th:href="@{/products/new}" class="nav-link nav-btn-primary">➕ New Product</a>
+                    <a th:href="@{/products/reset}" class="nav-link nav-btn-outline" title="Reset sample data">🔄 Reset Data</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+</body>
+</html>
