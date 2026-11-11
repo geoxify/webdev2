@@ -5,7 +5,7 @@
 **Student:** geoxify (`geoffbenedict.carino@lorma.edu`)  
 **Repository:** `https://github.com/geoxify/webdev2`  
 **Branch:** `prelim`  
-**Walkthrough Video (Task 6):** `[YouTube Video Link - Unlisted]`
+**Walkthrough Video (Task 6):** [https://youtu.be/FrRgu0Lc7YQ](https://youtu.be/FrRgu0Lc7YQ) (YouTube Unlisted)
 
 ---
 
@@ -160,4 +160,4 @@ All 20 unit and integration tests execute successfully:
 - [x] **Task 3:** Both templates render correctly with dynamic data. Empty list shows a fallback message.
 - [x] **Task 4:** Invalid form submissions redisplay with field-level errors. Valid submissions redirect to `/tasks`.
 - [x] **Task 5:** `/tasks/999` shows a friendly not-found page, not a stack trace.
-- [x] **Task 6:** Video walkthrough demonstration and code explanation guide prepared; ready for student recording and upload.
+- [x] **Task 6:** Video walkthrough recorded and uploaded to YouTube: [https://youtu.be/FrRgu0Lc7YQ](https://youtu.be/FrRgu0Lc7YQ). All acceptance criteria and code walkthrough covered.

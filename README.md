@@ -5,7 +5,7 @@
 **Student:** geoxify (`geoffbenedict.carino@lorma.edu`)  
 **Repository:** `https://github.com/geoxify/webdev2`  
 **Branch:** `prelim`  
-**Walkthrough Video (Task 6):** `[YouTube Video Link - Unlisted]`
+**Walkthrough Video (Task 6):** [https://youtu.be/FrRgu0Lc7YQ](https://youtu.be/FrRgu0Lc7YQ) (YouTube Unlisted)
 
 ---
 
@@ -144,7 +144,7 @@ webdev2/
 | **3** | Both templates render correctly with dynamic data. Empty list shows a fallback message. | `task-list.html` (`th:each`, `th:if`), `task-detail.html` (${task.*}) | ✅ **PASSED** |
 | **4** | Invalid form submissions redisplay with field-level errors. Valid submissions redirect to `/tasks`. | `POST /tasks` with `@Valid` and `BindingResult`, PRG redirect, inline `th:errors` | ✅ **PASSED** |
 | **5** | `/tasks/999` shows a friendly not-found page, not a stack trace. | `@ExceptionHandler(TaskNotFoundException.class)` returning `error/not-found.html` | ✅ **PASSED** |
-| **6** | Video walkthrough demonstrates operations, validation, redirect, 404, and code explanation. | Unlisted YouTube video walkthrough | 📹 **READY** |
+| **6** | Video walkthrough demonstrates operations, validation, redirect, 404, and code explanation. | [https://youtu.be/FrRgu0Lc7YQ](https://youtu.be/FrRgu0Lc7YQ) | ✅ **PASSED** |
 
 ---
 
